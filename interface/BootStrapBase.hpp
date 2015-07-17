@@ -1,6 +1,11 @@
 #ifndef BOOTSTRAP_BASE_H
 #define BOOTSTRAP_BASE_H
 
+/* Original Author: Andrea C. Marini
+ * Date: 16 Jul 2015
+ * No Warranty
+ */
+
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TRandom.h"
