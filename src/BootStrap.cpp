@@ -5,6 +5,10 @@
 #include "RooUnfoldSvd.h"
 #include "RooUnfoldInvert.h"
 
+#include <iostream>
+
+#define VERBOSE 0
+
 BootStrap::BootStrap(): BootStrapBase() {
 
 	u_reco_ = NULL;
@@ -99,6 +103,7 @@ TH1D* BootStrap::Unfold(TH1D* h)
 
 TH1D* BootStrap::Fold(TH1D* h)
 {
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution "<<endl;
 	// folding should do the opposite:
 	TH1D *reco  = f_reco_;
 	TH1D *truth = f_truth_;
@@ -106,6 +111,7 @@ TH1D* BootStrap::Fold(TH1D* h)
 
 	if( truth == NULL and reco == NULL and resp == NULL)
 		{
+		if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Using Unfold matrixes "<<endl;
 		reco  = u_reco_;
 		truth = u_truth_;
 		resp  = u_resp_;
@@ -114,6 +120,7 @@ TH1D* BootStrap::Fold(TH1D* h)
 	//get projections
 	//"measured" and "truth" give the projections of "response" onto the X-axis and Y-axis respectively,
 	//construct bkg
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Construct bkg "<<endl;
 	if (f_resp_bkg_ == NULL) 
 	{
 		f_resp_bkg_ = resp->ProjectionX();
@@ -126,6 +133,7 @@ TH1D* BootStrap::Fold(TH1D* h)
 	}
 
 	// construct efficiency
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Construct eff "<<endl;
 	if (f_resp_eff_ == NULL) 
 	{
 		f_resp_eff_ = resp->ProjectionY();
@@ -139,11 +147,28 @@ TH1D* BootStrap::Fold(TH1D* h)
 		}
 	}
 
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Construct smear "<<endl;
 	if( f_resp_smear_ == NULL) 
 	{
-	
+		f_resp_smear_ = (TH2D*)resp->Clone("reps_smear");
+		for(int i=0;i<= resp->GetNbinsX()+1 ;++i)
+		{
+			float S=0;
+			for(int j=0;j<= resp->GetNbinsY()+1 ;++j)
+			{
+			float c = resp->GetBinContent(i,j);
+			S+= c;	
+			}
+			//---
+			for(int j=0;j<= resp->GetNbinsY()+1 ;++j)
+			{
+			float c = resp->GetBinContent(i,j);
+			f_resp_smear_->SetBinContent(i,j, c/S) ;
+			}
+		}
 	}
 
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: 1. Appl eff "<<endl;
 	TH1D *fold = (TH1D*)h->Clone("fold");
 	// 1. apply eff.
 	for( int i=0;i<= fold->GetNbinsX()+1 ;++i)
@@ -155,6 +180,23 @@ TH1D* BootStrap::Fold(TH1D* h)
 		fold -> SetBinError(i, e*eff);
 	}
 	// 2. apply smearings.
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: 2. Appl smearings "<<endl;
+	TH1D *fold2= (TH1D*) fold->Clone("fold2");
+	for(int i=0;i<= fold->GetNbinsX() +1  ;++i)
+	{
+		float S=0;
+		for(int j=0;j<= f_resp_smear_->GetNbinsY() +1  ;++j)
+		{
+			float c = fold -> GetBinContent(j);	
+			float s = f_resp_smear_ -> GetBinContent(i,j);
+			S += c*s;
+		}
+		fold2 -> SetBinContent(i,S);
+	}
+	destroyPointer(fold);
+	fold=fold2;
+
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: 3. Appl bkg "<<endl;
 	// 3. add bkg
 	for( int i=0;i<= fold->GetNbinsX()+1 ;++i)
 	{
@@ -164,5 +206,6 @@ TH1D* BootStrap::Fold(TH1D* h)
 		fold -> SetBinContent(i, c + bkg);
 		fold -> SetBinError(i, e + TMath::Sqrt(bkg));
 	}
-	return (TH1D*)NULL;//TODO
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: Return; "<<endl;
+	return (TH1D*)fold;
 }

@@ -30,7 +30,7 @@ private:
 	//
 	TH1D * f_resp_bkg_;
 	TH1D * f_resp_eff_;
-	TH1D * f_resp_smear_;
+	TH2D * f_resp_smear_;
 
 	int regParam_;
 	UnfoldType unfType_;	
@@ -49,6 +49,7 @@ public:
 	void SetFMatrix(TH1D* reco, TH1D* truth, TH2D* resp);
 
 	inline void SetUnfoldType( UnfoldType t){ unfType_ = t;}
+	inline void SetRegParam( int reg) { regParam_ = reg;}
 };
 
 #endif

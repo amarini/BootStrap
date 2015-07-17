@@ -2,6 +2,8 @@
 #include "TRandom3.h"
 #include <iostream>
 
+#define VERBOSE 0
+
 // --- Constructor 
 BootStrapBase::BootStrapBase()
 {
@@ -30,6 +32,11 @@ void BootStrapBase::SetNToys(int ntoys)
 	Ntoys_ = ntoys;
 }
 
+void BootStrapBase::SetData(TH1D* data)
+{
+	setPointer(data,data_);	
+}
+
 void BootStrapBase::SetSumW2(bool sumw2)
 {
 	SumW2_= sumw2;
@@ -42,6 +49,7 @@ TH1D* BootStrapBase::releaseData(){
 
 
 TH1D* BootStrapBase::bootStrap(){
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] checking if pointers are not null "<<endl;
 	// create one bootstrap instance
 	if (r_ == NULL) r_ = new TRandom3(seed_);
 	// unfold data
@@ -50,18 +58,24 @@ TH1D* BootStrapBase::bootStrap(){
 	if(fold_==NULL) fold_ = Fold(unf_);
 	//
 	TH1D * toy = (TH1D*)fold_ -> Clone("toy_");
+	toy->Reset("ACE");
 	// -- smear
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] smear "<<endl;
 	for(int i=0;i<= toy->GetNbinsX() +1 ; ++i)
 	{
 		double c = toy->GetBinContent(i);
 		double e = toy->GetBinError(i);
 		double c2;
+
+		if( not SumW2_ and c<=0 ) continue;
+
 		if (SumW2_) c2=r_->Gaus(c,e);
 		else c2 = r_->Poisson(c); 
 
 		toy->SetBinContent(i,c2);
 	}
 	// -- unfold toy
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] unfold "<<endl;
 	TH1D * toy2 = Unfold(toy);
 	toy2->SetName("toy2_");
 
@@ -71,11 +85,14 @@ TH1D* BootStrapBase::bootStrap(){
 }
 
 void BootStrapBase::run(){
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] clearBootstrap "<<endl;
 	clearBootstrap();
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] destroyPointers "<<endl;
 	destroyPointer(unf_);
 	destroyPointer(fold_);
 	for(int iToy=0;iToy<Ntoys_;++iToy)
 	{
+		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] running Toy "<< iToy <<endl;
 		TH1D *toy = bootStrap();	
 		toy->SetName( Form("toy_%d",iToy) ) ;
 		bootstrap_ . push_back( toy );
