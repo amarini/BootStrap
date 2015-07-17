@@ -24,16 +24,16 @@ smear= ROOT.TH2D("smear","smear",N,0.,1.,N,0.,1.)
 for i in range(0,N):
 	iBin= i+1
 	gen . SetBinContent(iBin, 1000.*ROOT.TMath.Power(iBin,-5) ) 
-	bkg . SetBinContent(iBin, 10.*  ROOT.TMath.Cos( float(iBin)/N * 3.14) ) 
+	bkg . SetBinContent(iBin, 10.*  abs(ROOT.TMath.Cos( float(iBin)/N * 3.14)) * ROOT.TMath.Power(iBin,-4) ) 
 
 ## construct probability smears
 for i in range(0,N):
    for j in range(0,N):
 	iBin= i+1
 	jBin= j+1
-	if (iBin== jBin):resp.SetBinContent(iBin,jBin, 0.7) 
-	if (abs(iBin-jBin) == 1):resp.SetBinContent(iBin,jBin, 0.2) 
-	if (abs(iBin-jBin) == 2):resp.SetBinContent(iBin,jBin, 0.1) 
+	if (iBin == jBin):smear.SetBinContent(iBin,jBin, 0.7) 
+	if (abs(iBin-jBin) == 1):smear.SetBinContent(iBin,jBin, 0.2) 
+	if (abs(iBin-jBin) == 2):smear.SetBinContent(iBin,jBin, 0.1) 
 
 ## construct response matrix
 for i in range(0,N):
@@ -92,11 +92,30 @@ h_bayes.Draw("PE2 SAME")
 g_bootstrap.Draw("PE SAME")
 gen.Draw("HIST SAME")
 
+reco.SetLineColor(ROOT.kBlack)
+reco.Draw("HIST SAME")
+bkg.SetLineColor(ROOT.kGray)
+bkg.SetLineStyle(2)
+bkg.Draw("HIST SAME")
+
+gen.Print("ALL")
+print "BAYES"
+h_bayes.Print("ALL")
+print "BOOTSTRAP"
+g_bootstrap.Print("V")
+
 l = ROOT.TLegend(0.6,.6,.89,.89)
 l.AddEntry(gen,"truth","L")
 l.AddEntry(h_bayes,"bayes","LF")
 l.AddEntry(g_bootstrap,"bayes","PE")
 l.Draw()
+
+c2=ROOT.TCanvas()
+c2.Divide(2)
+c2.cd(1)
+smear.Draw("BOX")
+c2.cd(2)
+resp.Draw("BOX")
 
 raw_input("Looks ok ? ")
 
