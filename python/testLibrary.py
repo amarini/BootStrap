@@ -21,41 +21,57 @@ smear= ROOT.TH2D("smear","smear",N,0.,1.,N,0.,1.)
 
 
 ## Construct generator and bkg spectra
-for i in range(0,N):
-	iBin= i+1
-	gen . SetBinContent(iBin, 1000.*ROOT.TMath.Power(iBin,-5) ) 
-	bkg . SetBinContent(iBin, 10.*  abs(ROOT.TMath.Cos( float(iBin)/N * 3.14)) * ROOT.TMath.Power(iBin,-4) ) 
+def ConstructBackround():
+	for i in range(0,N):
+		iBin= i+1
+		bkg . SetBinContent(iBin, 10.*  abs(ROOT.TMath.Cos( float(iBin)/N * 3.14)) * ROOT.TMath.Power(iBin,-4) ) 
+
+def ConstructTruth():
+	for i in range(0,N):
+		iBin= i+1
+		gen . SetBinContent(iBin, 1000.*ROOT.TMath.Power(iBin,-5) ) 
 
 ## construct probability smears
-for i in range(0,N):
-   for j in range(0,N):
-	iBin= i+1
-	jBin= j+1
-	if (iBin == jBin):smear.SetBinContent(iBin,jBin, 0.7) 
-	if (abs(iBin-jBin) == 1):smear.SetBinContent(iBin,jBin, 0.2) 
-	if (abs(iBin-jBin) == 2):smear.SetBinContent(iBin,jBin, 0.1) 
+def ConstructSmear():
+	for i in range(0,N):
+	   for j in range(0,N):
+		iBin= i+1
+		jBin= j+1
+		if (iBin == jBin):smear.SetBinContent(iBin,jBin, 0.7) 
+		if (abs(iBin-jBin) == 1):smear.SetBinContent(iBin,jBin, 0.08) 
+		if (abs(iBin-jBin) == 2):smear.SetBinContent(iBin,jBin, 0.03) 
 
 ## construct response matrix
-for i in range(0,N):
-   for j in range(0,N):
-	iBin= i+1
-	jBin= j+1
-	resp.SetBinContent(iBin,jBin, smear.GetBinContent(iBin,jBin) * gen.GetBinContent(jBin) ) 
+def ConstructResponse():
+	for i in range(0,N):
+	   for j in range(0,N):
+		iBin= i+1
+		jBin= j+1
+		resp.SetBinContent(iBin,jBin, smear.GetBinContent(iBin,jBin) * gen.GetBinContent(jBin) ) 
 
 ## construct reco
-for i in range(0,N):
-   S=0
-   for j in range(0,N):
-	iBin= i+1
-	jBin= j+1
-	S += resp.GetBinContent(iBin,jBin)			
-   reco.SetBinContent(iBin, S + bkg.GetBinContent(iBin) ) 
+def ConstructReco():
+	for i in range(0,N):
+	   S=0
+	   for j in range(0,N):
+		iBin= i+1
+		jBin= j+1
+		S += resp.GetBinContent(iBin,jBin)			
+	   reco.SetBinContent(iBin, S + bkg.GetBinContent(iBin) ) 
 
-data = reco.Clone("data")
-for i in range(0,N):
-	iBin= i+1
-	data.SetBinContent(iBin, r.Poisson(data.GetBinContent(iBin) ) ) 
+def ConstructData():
+	data = reco.Clone("data")
+	for i in range(0,N):
+		iBin= i+1
+		data.SetBinContent(iBin, r.Poisson(data.GetBinContent(iBin) ) ) 
 
+ConstructBackground()
+ConstructTruth()
+ConstructSmear()
+
+ConstructResponse()
+ConstructReco()
+ConstructData()
 
 print "-> construct Unfolding"
 nReg = 5
