@@ -36,25 +36,12 @@ private:
 
 protected:
 	// ------------- templates goes in the h file
-	template<class T>
-	void setPointer( T orig,T &target){
-		destroyPointer(target);
-		target=orig;
-	}
+	template<class T> void setPointer( T orig,T &target);
 
-	template<class T>
-	T releasePointer(T &target)
-	{
-		T r=target;
-		target=NULL;
-		return r;
-	}
+	template<class T> T releasePointer(T &target);
 
-	template<class T>
-	void destroyPointer(T &ptr){
-		if (ptr != NULL) delete ptr;
-		ptr=NULL;
-	}
+	template<class T> void destroyPointer(T &ptr);
+
 
 	void clearBootstrap(){ for( TH1D*ptr : bootstrap_ ) destroyPointer( ptr) ; bootstrap_.clear(); }
 	TH1D* bootStrap();
@@ -97,6 +84,29 @@ public:
 	TGraphAsymmErrors *result(ResultType type=kStd,float Q=0.68);
 	TH2D *correlation();
 };
+
+// -- TEMPLATE DEFINITIONS
+template<> void BootStrapBase::destroyPointer<TObject*> (TObject* &ptr);
+
+template<class T>
+void BootStrapBase::setPointer( T orig,T &target){
+	destroyPointer(target);
+	target=orig;
+}
+
+template<class T>
+T BootStrapBase::releasePointer(T &target)
+{
+	T r=target;
+	target=NULL;
+	return r;
+}
+
+template<class T>
+void BootStrapBase::destroyPointer(T &ptr){
+	if (ptr != NULL) delete ptr;
+	ptr=NULL;
+}
 
 
 #endif

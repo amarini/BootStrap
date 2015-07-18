@@ -17,7 +17,8 @@ public:
 
 private:
 	// --- matrix -- 
-	// in principle can be different ... needs studies (related to model dependence)
+	// in principle can be different ... 
+	// needs studies (related to model dependence)
 	TH1D * u_reco_;
 	TH1D * u_truth_;
 	TH2D * u_resp_;
@@ -29,8 +30,9 @@ private:
 	// --- projections
 	//
 	TH1D * f_resp_bkg_;
-	TH1D * f_resp_eff_;
 	TH2D * f_resp_smear_;
+	
+	void ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp);
 
 	int regParam_;
 	UnfoldType unfType_;	

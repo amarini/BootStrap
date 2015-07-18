@@ -20,7 +20,6 @@ BootStrap::BootStrap(): BootStrapBase() {
 	f_resp_ = NULL;
 
 	f_resp_bkg_ = NULL;
-	f_resp_eff_ = NULL;
 	f_resp_smear_ = NULL;
 }
 
@@ -52,7 +51,6 @@ void BootStrap::SetUMatrix(TH1D* reco, TH1D* truth, TH2D* resp)
 	{
 		f_resp_bkg_ = NULL;
 		f_resp_smear_ = NULL;
-		f_resp_eff_ = NULL;
 	}
 
 
@@ -69,8 +67,6 @@ void BootStrap::SetFMatrix(TH1D* reco, TH1D* truth, TH2D* resp)
 
 	f_resp_bkg_ = NULL;
 	f_resp_smear_ = NULL;
-	f_resp_eff_ = NULL;
-
 }
 
 TH1D* BootStrap::Unfold(TH1D* h)
@@ -82,23 +78,63 @@ TH1D* BootStrap::Unfold(TH1D* h)
 	case kBayes:
 		{
 		RooUnfoldBayes u( &RU_Resp, h, regParam_);
+		u.SetVerbose(-1);
 		return (TH1D*)u.Hreco( RooUnfold::kNoError);
 		break;
 		}
 	case kSvd:
 		{
 		RooUnfoldSvd u( &RU_Resp, h, regParam_)	;
+		u.SetVerbose(-1);
 		return (TH1D*)u.Hreco( RooUnfold::kNoError);
 		break;
 		}
 	case kInv:
 		{
 		RooUnfoldInvert u( &RU_Resp, h)	;
+		u.SetVerbose(-1);
 		return (TH1D*)u.Hreco( RooUnfold::kNoError);
 		break;
 		}
 	}
 	return (TH1D*)NULL;// problem !!
+}
+
+void BootStrap::ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp){
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution "<<endl;
+	//get projections
+	//"measured" and "truth" give the projections of "response" onto the X-axis and Y-axis respectively,
+	//construct bkg
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Construct bkg "<<endl;
+	if (f_resp_bkg_ == NULL) 
+	{
+		f_resp_bkg_ = resp->ProjectionX();
+		for(int i=0;i<=f_resp_bkg_->GetNbinsX()+1 ;++i)
+		{
+			float r = reco->GetBinContent(i);
+			float genreco = f_resp_bkg_->GetBinContent(i);
+			f_resp_bkg_ -> SetBinContent(i, r - genreco);
+		}
+	}
+
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Construct smear "<<endl;
+	if( f_resp_smear_ == NULL) 
+	{
+		f_resp_smear_ = (TH2D*)resp->Clone("reps_smear");
+		f_resp_smear_ -> Reset("ACE");
+		for(int i=0;i<= resp->GetNbinsX()+1 ;++i)
+		{
+			for(int j=0;j<= resp->GetNbinsY()+1 ;++j)
+			{
+			float c = resp->GetBinContent(i,j);
+			float g = truth->GetBinContent(j);
+			if(g==0) continue;
+			f_resp_smear_->SetBinContent(i,j, c/g) ;
+			}
+		}
+	}
+
+	return;
 }
 
 TH1D* BootStrap::Fold(TH1D* h)
@@ -117,87 +153,28 @@ TH1D* BootStrap::Fold(TH1D* h)
 		resp  = u_resp_;
 		}
 
-	//get projections
-	//"measured" and "truth" give the projections of "response" onto the X-axis and Y-axis respectively,
-	//construct bkg
-	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Construct bkg "<<endl;
-	if (f_resp_bkg_ == NULL) 
-	{
-		f_resp_bkg_ = resp->ProjectionX();
-		for(int i=0;i<=f_resp_bkg_->GetNbinsX()+1 ;++i)
-		{
-			float r = reco->GetBinContent(i);
-			float genreco = f_resp_bkg_->GetBinContent(i);
-			f_resp_bkg_ -> SetBinContent(i, r - genreco);
-		}
-	}
+	// construct the matrix f_resp_smear and f_resp_bkg_ if they are NULL
+	ConstructProjections(reco,truth,resp);
 
-	// construct efficiency
-	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Construct eff "<<endl;
-	if (f_resp_eff_ == NULL) 
-	{
-		f_resp_eff_ = resp->ProjectionY();
-		for(int i=0;i<=f_resp_eff_->GetNbinsX()+1 ;++i)
-		{
-			float gen = truth->GetBinContent(i);
-			float genreco = f_resp_eff_->GetBinContent(i);
-			float eff =0;
-			if(gen != 0) eff=genreco/gen;
-			f_resp_eff_ -> SetBinContent(i,eff);
-		}
-	}
-
-	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Construct smear "<<endl;
-	if( f_resp_smear_ == NULL) 
-	{
-		f_resp_smear_ = (TH2D*)resp->Clone("reps_smear");
-		for(int i=0;i<= resp->GetNbinsX()+1 ;++i)
-		{
-			float S=0;
-			for(int j=0;j<= resp->GetNbinsY()+1 ;++j)
-			{
-			float c = resp->GetBinContent(i,j);
-			S+= c;	
-			}
-			//---
-			for(int j=0;j<= resp->GetNbinsY()+1 ;++j)
-			{
-			float c = resp->GetBinContent(i,j);
-			f_resp_smear_->SetBinContent(i,j, c/S) ;
-			}
-		}
-	}
-
-	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: 1. Appl eff "<<endl;
+	// ------------------------------
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: 1. Appl smearings "<<endl;
 	TH1D *fold = (TH1D*)h->Clone("fold");
-	// 1. apply eff.
-	for( int i=0;i<= fold->GetNbinsX()+1 ;++i)
-	{
-		float c= fold->GetBinContent(i);	
-		float e= fold->GetBinError(i);
-		float eff = f_resp_eff_ -> GetBinContent(i);
-		fold -> SetBinContent(i, c*eff);
-		fold -> SetBinError(i, e*eff);
-	}
-	// 2. apply smearings.
-	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: 2. Appl smearings "<<endl;
-	TH1D *fold2= (TH1D*) fold->Clone("fold2");
+	fold->Reset("ACE");
+	// 1. apply eff and smearings.
 	for(int i=0;i<= fold->GetNbinsX() +1  ;++i)
 	{
 		float S=0;
 		for(int j=0;j<= f_resp_smear_->GetNbinsY() +1  ;++j)
 		{
-			float c = fold -> GetBinContent(j);	
+			float c = h -> GetBinContent(j);	
 			float s = f_resp_smear_ -> GetBinContent(i,j);
-			S += c*s;
+			S += s*c;
 		}
-		fold2 -> SetBinContent(i,S);
+		fold -> SetBinContent(i,S);
 	}
-	destroyPointer(fold);
-	fold=fold2;
 
-	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: 3. Appl bkg "<<endl;
-	// 3. add bkg
+	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: 2. Appl bkg "<<endl;
+	// 2. add bkg
 	for( int i=0;i<= fold->GetNbinsX()+1 ;++i)
 	{
 		float c= fold->GetBinContent(i);	

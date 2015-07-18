@@ -2,7 +2,14 @@
 #include "TRandom3.h"
 #include <iostream>
 
-#define VERBOSE 0
+#define VERBOSE 1
+
+
+template<>
+void BootStrapBase::destroyPointer<TObject*>(TObject* &ptr){
+	if (ptr != NULL) ptr->Delete();
+	ptr=NULL;
+}
 
 // --- Constructor 
 BootStrapBase::BootStrapBase()
@@ -10,9 +17,10 @@ BootStrapBase::BootStrapBase()
 	Ntoys_ = 100;
 	SumW2_ = false;
 	data_ = NULL;
-	seed_ = 123456;
+	seed_ = 12345678;
 	unf_ = NULL;
 	fold_ = NULL;
+	r_ = NULL;
 }
 
 BootStrapBase::BootStrapBase(int ntoys) : BootStrapBase()
@@ -23,6 +31,9 @@ BootStrapBase::BootStrapBase(int ntoys) : BootStrapBase()
 // --- Destructor
 BootStrapBase::~BootStrapBase(){
 	destroyPointer(data_);	
+	destroyPointer(r_);	
+	destroyPointer(unf_);	
+	destroyPointer(fold_);	
 	clearBootstrap();
 }
 
@@ -60,18 +71,28 @@ TH1D* BootStrapBase::bootStrap(){
 	TH1D * toy = (TH1D*)fold_ -> Clone("toy_");
 	toy->Reset("ACE");
 	// -- smear
-	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] smear "<<endl;
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] smear fold_="<< fold_<<" != NULL"<<" r"<<r_ << "toy="<<toy<<endl;
 	for(int i=0;i<= toy->GetNbinsX() +1 ; ++i)
 	{
-		double c = toy->GetBinContent(i);
-		double e = toy->GetBinError(i);
-		double c2;
+		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] Doing Bin"<<i<<"/"<<toy->GetNbinsX() +1 <<endl;
+		double c = fold_->GetBinContent(i);
+		double e = fold_->GetBinError(i);
 
 		if( not SumW2_ and c<=0 ) continue;
 
-		if (SumW2_) c2=r_->Gaus(c,e);
-		else c2 = r_->Poisson(c); 
+		double c2;
 
+		if (VERBOSE >0 ) 
+			cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] Calling Poisson/Gauss (Sumw2= "<<SumW2_<<") r="<<r_
+			<<" with param: "<<c<<"; "<<e <<endl;
+
+		if( VERBOSE>0)	cout << "G(0,1)"<<r_->Gaus(0,1)<<endl;
+		if( VERBOSE>0)	cout << "P(10)"<<r_->Poisson(10)<<endl;
+
+		if (SumW2_) { c2=r_->Gaus(c,e);}
+		else { c2 = r_->Poisson(c); }
+
+		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] Setting Bin Content of toy"<<toy<<endl;
 		toy->SetBinContent(i,c2);
 	}
 	// -- unfold toy
@@ -159,7 +180,7 @@ TGraphAsymmErrors* BootStrapBase::result( ResultType type,float Q)
 		float ehigh = err.second -mean;
 
 		int npoint= R->GetN();
-		R->SetPoint( npoint, unf_->GetBinCenter( iBin), mean);
+		R->SetPoint( npoint, unf_->GetBinCenter( iBin ), mean);
 		R->SetPointError(npoint, 0,0, elow,ehigh);
 
 	}
