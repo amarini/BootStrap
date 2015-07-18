@@ -85,14 +85,14 @@ public:
 
 	enum ResultType { kStd=0, kMin=1, kMedian=2 , kMean = 3 };
 	// get results -- these are recomputed each time
-	// type =0 : 
+	// type =kStd : 
 	// 	mean points are the unfold ones. errors are asymetric in order to cover Q/2 each.
-	// type =1 :
+	// type =kMin :
 	// 	mean points are the unfold ones. errors are the minimum interval to cover Q
-	// type =2 :
-	// 	errors are the median of the toys and errors covers the small possible interval
-	// type = 3:
-	// 	points are the mean of toys and errors covers the small possible interval
+	// type = kMedian :
+	// 	mean points are the median of the toys and errors covers the smallest possible interval
+	// type = kMean:
+	// 	points are the mean of toys and errors covers the smallest possible interval
 	TGraphAsymmErrors *result(ResultType type=kStd,float Q=0.68);
 	TH2D *correlation();
 };

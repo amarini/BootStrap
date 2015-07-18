@@ -1,0 +1,14 @@
+# c/c++
+*.o
+*.so
+*.d
+
+#
+bin/*
+
+#python
+*pyc
+
+#emacs and vim
+.*.swp
+*~
