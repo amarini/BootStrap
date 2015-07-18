@@ -3,6 +3,7 @@
 ### Table Of Contents
 - [Installation](#user-content-installation)
 - [User Guide](#user-content-user-guide)
+- [Example](#user-content-example)
 - [Code Organization](#user-content-code-organization)
 
 ## Installation
@@ -39,6 +40,32 @@ The following functions are available:
      * kMean: mean  points are the mean of toys and errors covers the smallest possible interval
 
 * correlation() : return the correlation matrix. elements are the pearson correlatino coefficient of the toys.
+
+## Example
+* Open python (PyROOT) and import libraries:
+```
+python
+import ROOT
+ROOT.gSystem.Load("bin/libBootStrap.so")
+```
+* Get Response matrix/data and feed them to the BootStrap:
+```
+reco = f.Get(...) / data = f.Get() ...
+b= ROOT.BootStrap()
+b.SetNToys(1000)
+b.SetUnfoldType(ROOT.BootStrap.kBayes)
+b.SetRegParam(5)
+b.SetUMatrix(reg,gen,resp)
+b.SetData(data)
+``` 
+* Run the boostrap
+```
+b.run() ## default is ROOT.BootStrapBase.kBootstrap
+```
+* Get the results
+```
+g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68)
+```
 
 ## Code Organization
 Two classes has been implemnted so far:
