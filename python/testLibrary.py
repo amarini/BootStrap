@@ -92,6 +92,9 @@ resp2= ConstructResponse(gen2,smear)
 reco2= ConstructReco(bkg,resp2)
 data2= ConstructData(reco2)
 
+print "-> Using no bias in the matrix"
+data2=data
+
 print "-> construct Unfolding"
 nReg = 1
 R = ROOT.RooUnfoldResponse(reco,gen,resp)
@@ -106,15 +109,21 @@ h_bayes = u.Hreco(ROOT.RooUnfold.kCovToy)
 print "-> construct BootStrap"
 b = ROOT.BootStrap()
 b.SetNToys(1000)
+b.SetSeed(328956)
 b.SetUnfoldType(ROOT.BootStrap.kBayes)
 b.SetRegParam(nReg)
 b.SetUMatrix(reco,gen,resp)
 b.SetData(data2)
 
 print "-> running BootStrap"
-b.run()
-## kStd/kMin/kMedian/kMean
-g_bootstrap = b.result(ROOT.BootStrapBase.kMin);
+## b.SetConfSigma(1)
+## b.SetConfSigmaGen(10)
+## b.SetSumW2()
+## ## kStd/kMin/kMedian/kMean
+## b.run(ROOT.BootStrapBase.kConfidence)
+## g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68);
+b.run(ROOT.BootStrapBase.kBootstrap)
+g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68);
 
 print "-> plotting"
 
@@ -148,7 +157,7 @@ reco.SetLineColor(ROOT.kBlack)
 data.SetMarkerStyle(24)
 data.SetMarkerColor(ROOT.kMagenta)
 
-gen.Draw("HIST")
+gen.Draw("AXIS")
 bkg.Draw("HIST SAME")
 
 h_bayes.Draw("PE2 SAME")
@@ -158,6 +167,8 @@ gen.Draw("HIST SAME")
 
 reco.Draw("HIST SAME")
 data.Draw("P SAME")
+gen.Draw("AXIS SAME")
+gen.Draw("AXIS X+ Y+ SAME")
 
 l = ROOT.TLegend(0.6,.6,.98,.98)
 l.SetFillStyle(0)

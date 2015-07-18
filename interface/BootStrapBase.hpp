@@ -34,6 +34,9 @@ private:
 	TH1D* unf_;
 	TH1D* fold_;
 
+	int confCounter_;
+	int confSigma_ ;    // how far the toys are accepted
+	int confSigmaGen_ ; // how far the toys are generated -- only for SumW2
 protected:
 	// ------------- templates goes in the h file
 	template<class T> void setPointer( T orig,T &target);
@@ -45,6 +48,8 @@ protected:
 
 	void clearBootstrap(){ for( TH1D*ptr : bootstrap_ ) destroyPointer( ptr) ; bootstrap_.clear(); }
 	TH1D* bootStrap();
+
+	TH1D* confidence();
 
 public:
 	// --- Constructor 
@@ -68,8 +73,15 @@ public:
 	// return and give back ownership
 	TH1D* releaseData(); 
 
+	enum RunType{kBootstrap=0,kConfidence=1};
 	// run BootStrap
-	void run();	
+	void run(RunType type=kBootstrap);	
+
+	//--
+	inline void SetConfSigma(int sigma){confSigma_ =sigma;};
+	inline void SetConfSigmaGen(int sigma){confSigmaGen_ =sigma;};
+	inline void SetSeed(long seed){seed_ = seed;};
+
 
 	enum ResultType { kStd=0, kMin=1, kMedian=2 , kMean = 3 };
 	// get results -- these are recomputed each time

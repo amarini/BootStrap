@@ -2,8 +2,7 @@
 #include "TRandom3.h"
 #include <iostream>
 
-#define VERBOSE 1
-
+#define VERBOSE 0
 
 template<>
 void BootStrapBase::destroyPointer<TObject*>(TObject* &ptr){
@@ -21,6 +20,9 @@ BootStrapBase::BootStrapBase()
 	unf_ = NULL;
 	fold_ = NULL;
 	r_ = NULL;
+	confCounter_= 0;
+	confSigma_=1;
+	confSigmaGen_=1;
 }
 
 BootStrapBase::BootStrapBase(int ntoys) : BootStrapBase()
@@ -86,9 +88,6 @@ TH1D* BootStrapBase::bootStrap(){
 			cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] Calling Poisson/Gauss (Sumw2= "<<SumW2_<<") r="<<r_
 			<<" with param: "<<c<<"; "<<e <<endl;
 
-		if( VERBOSE>0)	cout << "G(0,1)"<<r_->Gaus(0,1)<<endl;
-		if( VERBOSE>0)	cout << "P(10)"<<r_->Poisson(10)<<endl;
-
 		if (SumW2_) { c2=r_->Gaus(c,e);}
 		else { c2 = r_->Poisson(c); }
 
@@ -105,7 +104,62 @@ TH1D* BootStrapBase::bootStrap(){
 	return toy2;
 }
 
-void BootStrapBase::run(){
+TH1D* BootStrapBase::confidence(){
+	/* this macro unfold the data
+	 * modified the unfolded data
+	 * tryies to fold it, and save it
+	 * iff it is in all the errors
+	 */
+
+	if (r_ == NULL) r_ = new TRandom3(seed_);
+	// unfold data
+	if(unf_==NULL) unf_ = Unfold(data_);
+	//  fold back into an observation
+	if(fold_==NULL) fold_ = Fold(unf_);
+	//
+	TH1D * toy = (TH1D*)unf_ -> Clone("toy_");
+	for(int i=0;i<= toy->GetNbinsX() +1 ; ++i)
+	{
+		double c = fold_->GetBinContent(i);
+		double e = fold_->GetBinError(i);
+
+		if( not SumW2_ and c<=0 ) continue;
+		double c2;
+
+		if (SumW2_) { c2=r_->Gaus(c,confSigmaGen_* e);}
+		else { c2 = r_->Poisson(c); }
+
+		toy->SetBinContent(i,c2);
+	}
+
+	TH1D* toy2= Fold(toy);
+	bool insideErrors=true;
+	for(int i=1;i<= toy->GetNbinsX() ; ++i)
+	{
+		double c = toy2->GetBinContent(i);
+		double c2 = data_->GetBinContent(i);
+		double e= data_->GetBinError(i);
+
+		if( fabs(c-c2) > confSigma_* e) insideErrors= false;
+	}
+
+	destroyPointer(toy2);
+
+	if ( insideErrors ) 
+		{
+		// toy is good
+		return toy;
+		}
+	else
+		{
+		destroyPointer(toy);
+		confCounter_ ++;
+		if ( confCounter_ > 30 ) return NULL;
+		return  confidence(); // try again
+		}
+}
+
+void BootStrapBase::run(RunType type){
 	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] clearBootstrap "<<endl;
 	clearBootstrap();
 	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] destroyPointers "<<endl;
@@ -114,11 +168,24 @@ void BootStrapBase::run(){
 	for(int iToy=0;iToy<Ntoys_;++iToy)
 	{
 		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] running Toy "<< iToy <<endl;
-		TH1D *toy = bootStrap();	
-		toy->SetName( Form("toy_%d",iToy) ) ;
+		TH1D*toy = NULL;
+		if (type == kBootstrap)
+			{
+			toy = bootStrap();	
+			toy->SetName( Form("toy_%d",iToy) ) ;
+			}
+		if (type == kConfidence ) 
+			{
+			confCounter_=0;
+			toy = confidence();	
+			if (toy == NULL ) continue;
+			toy->SetName( Form("conf_%d",iToy) ) ;
+			}
 		bootstrap_ . push_back( toy );
 	}
 }
+
+
 
 #include "interface/stat.hpp"
 TGraphAsymmErrors* BootStrapBase::result( ResultType type,float Q)
@@ -152,30 +219,52 @@ TGraphAsymmErrors* BootStrapBase::result( ResultType type,float Q)
 			values.push_back( bootstrap_[i]->GetBinContent(iBin) );
 		float mean;
 		pair<float,float> err;
+
 		switch (type)
 		{
 		case kStd:
+			{
 			mean=unf_->GetBinContent(iBin);
 			STAT::ConfidenceIntervalAround(values, mean, err,Q);
 			break;
+			}
 		case kMin:
+			{
 			mean=unf_->GetBinContent(iBin);
 			STAT::ConfidenceInterval(values, err,Q);
 			break;
+			}
 		case kMean:
+			{
 			mean=STAT::mean(values);
 			STAT::ConfidenceInterval(values, err,Q);
 			break;
+			}
 		case kMedian:
+			{
 			mean=STAT::median(values);
 			STAT::ConfidenceInterval(values, err,Q);
 			break;
+			}
 		}
 
 		// error are in absolute values, will scale to the mean point
 		//
-		if ( mean< err.first) cout<<"Error mean point is outside the error bands"<<endl;
-		if ( mean> err.second) cout<<"Error mean point is outside the error bands"<<endl;
+		if ( mean< err.first) cout<<"Error mean point is outside the error bands 1:"<<mean<<" < "<<err.first <<endl;
+		if ( mean> err.second) cout<<"Error mean point is outside the error bands 2"<<mean<<" > "<<err.second<< endl;
+
+		if( mean<err.first or  mean> err.second )
+			{
+			cout<<"[STAT]::[INFO]: Type= "<<type<<endl;
+			cout<<"[STAT]::[INFO]: Mean="<< STAT::mean(values) <<endl;
+			cout<<"[STAT]::[INFO]: Median="<< STAT::median(values) <<endl;
+			cout<<"[STAT]::[INFO]: RMS="<< STAT::rms(values) <<endl;
+			cout<<"[STAT]::[INFO]: Err="<< err.first<<" "<<err.second<<endl;
+			cout<<"[STAT]::[INFO]: Values=";
+			for(auto&v : values) cout<<v<<" ";
+			cout<<endl;
+			}
+
 		float elow = mean-err.first;
 		float ehigh = err.second -mean;
 

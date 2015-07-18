@@ -20,6 +20,7 @@ float STAT::mean(vector<float> &a )
 	}
 float STAT::median(vector<float> &a)
 	{
+	sort(a.begin(),a.end() );
 	float M=0;
 	//must be sorted
 	int nEntries=a.size();
