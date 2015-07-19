@@ -166,8 +166,10 @@ print "-> running BootStrap"
 b.run()
 #g_bootstrap = b.result(ROOT.BootStrapBase.kStd,.68)
 g_bootstrap = b.result(ROOT.BootStrap.kMedian,.68)
-
 g_bootstrap = ROOT.utils.Shift( g_bootstrap, 0.3, True)
+
+g_bs2 = b.result(ROOT.BootStrap.kStd,.68)
+g_bs2 = ROOT.utils.Shift( g_bs2, -.3,True)
 
 print "-> plotting"
 
@@ -191,6 +193,11 @@ g_bootstrap.SetMarkerColor(ROOT.kBlue+2)
 g_bootstrap.SetMarkerStyle(20)
 g_bootstrap.SetMarkerSize(0.8)
 
+g_bs2.SetLineColor(ROOT.kViolet+1)
+g_bs2.SetMarkerColor(ROOT.kViolet+1)
+g_bs2.SetMarkerStyle(24)
+g_bs2.SetMarkerSize(0.8)
+
 bkg.SetLineColor(ROOT.kGray+1)
 bkg.SetLineStyle(2)
 bkg.SetFillColor(ROOT.kGray)
@@ -208,6 +215,7 @@ bkg.Draw("HIST SAME")
 
 h_bayes.Draw("PE2 SAME")
 g_bootstrap.Draw("PE SAME")
+g_bs2.Draw("PE SAME")
 gen.Draw("HIST SAME")
 #closure.Draw("HIST SAME")
 
@@ -222,6 +230,7 @@ l.SetBorderSize(0)
 l.AddEntry(gen,"truth","L")
 l.AddEntry(h_bayes,"bayes","LF")
 l.AddEntry(g_bootstrap,"bootstrap","PE")
+l.AddEntry(g_bs2,"bootstrap 2","PE")
 l.AddEntry(reco,"reco","L")
 l.AddEntry(bkg,"bkg","LF")
 l.AddEntry(data,"data","P")
