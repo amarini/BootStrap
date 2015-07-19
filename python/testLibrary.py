@@ -1,5 +1,6 @@
 import ROOT
 import sys,os
+import numpy
 
 print "-> Loading Library"
 ROOT.gSystem.Load("bin/libBootStrap.so") # it will know where it is RooUnfold.so and load it
@@ -7,7 +8,7 @@ ROOT.gSystem.Load("bin/libBootStrap.so") # it will know where it is RooUnfold.so
 print "-> Creating Matrixes"
 
 r=ROOT.TRandom3(23149)
-N=20
+N=50
 
 NBkg=1.e3
 NSig=1e7
@@ -28,9 +29,9 @@ def ConstructTruth(type=1):
 	for i in range(0,N):
 		iBin= i+1
 		if type == 1:
-			gen . SetBinContent(iBin, NSig*ROOT.TMath.Power(iBin,-5) ) 
+			gen . SetBinContent(iBin, NSig*ROOT.TMath.Power(iBin * 20. / N,-5) ) 
 		elif type == 2:
-			gen . SetBinContent(iBin, NSig*ROOT.TMath.Power(iBin,-4.9) + NSig/10000. *ROOT.TMath.Power(iBin,-3) ) 
+			gen . SetBinContent(iBin, NSig*ROOT.TMath.Power(iBin * 20./ N,-4.9) + NSig/10000. *ROOT.TMath.Power(iBin,-3) ) 
 	return gen
 
 ## construct probability smears
@@ -75,8 +76,60 @@ def ConstructData(reco):
 	data = reco.Clone("data."+reco.GetName())
 	for i in range(0,N):
 		iBin= i+1
-		data.SetBinContent(iBin, r.Poisson(data.GetBinContent(iBin) ) ) 
+		c= r.Poisson(data.GetBinContent(iBin) )
+		if c<0 : print "* ERROR: negative poisson!"
+		data.SetBinContent(iBin, c ) 
 	return data
+
+ROOT.gROOT.ProcessLine (\
+		"struct RGB{ \
+		float r;\
+		float g;\
+		float b;\
+		void SetRGB(int color) { gROOT->GetColor(color)->GetRGB(r,g,b); } \
+		};" )
+from ROOT import RGB
+
+## def rgb(color):
+## 	r= float(0.)
+## 	g= float(0.)
+## 	b= float(0.)
+## 
+## 	ROOT.gROOT.GetColor(color).GetRGB(r,g,b)
+## 	return (r,g,b)
+
+class color():
+	def __init__(self):
+		self.r = 0
+		self.g = 0
+		self.b = 0
+		self.rgb = RGB(0)
+	def __init__(self,color):
+		self.rgb = RGB()
+		self.rgb.SetRGB(color)
+		self.r = self.rgb.r
+		self.g = self.rgb.g
+		self.b = self.rgb.b
+
+def ChangePalette():
+	white = color(ROOT.kWhite)
+	darkRed = color(ROOT.kRed+2)
+	red = color (ROOT.kRed)
+	black = color (ROOT.kBlack)
+	orange = color(ROOT.kOrange)
+	yellow = color(ROOT.kYellow)
+	darkBlue= color(ROOT.kBlue+2)
+	blue = color(ROOT.kBlue)
+	cyan = color(ROOT.kCyan)
+	
+	r    = numpy.array([darkRed.r, red.r, orange.r,  yellow.r,	white.r,	cyan.r, blue.r, darkBlue.r, black.r ], dtype=float)
+	g    = numpy.array([darkRed.g, red.g, orange.g,  yellow.g,	white.g,	cyan.g, blue.g, darkBlue.g, black.g ], dtype =float)
+	b    = numpy.array([darkRed.b, red.b, orange.b,  yellow.b,	white.b,	cyan.b, blue.b, darkBlue.b, black.b ], dtype =float)
+	stop = numpy.array([0.       ,  0.05,     0.10,       .30,	.5, 	            .7,     .9,        .95, 1.0 ], dtype =float)
+
+   	FI = ROOT.TColor.CreateGradientColorTable(9, stop, r, g, b, 255);
+   	ROOT.gStyle.SetNumberContours(99);
+####################
 
 bkg  = ConstructBackground()
 gen  = ConstructTruth()
@@ -96,7 +149,9 @@ print "-> Using no bias in the matrix"
 data2=data
 
 print "-> construct Unfolding"
-nReg = 1
+nReg = 5
+print "\t\tBayes, nReg=",nReg
+
 R = ROOT.RooUnfoldResponse(reco,gen,resp)
 u = ROOT.RooUnfoldBayes(R,data2,nReg)
 u.SetVerbose(-1)
@@ -113,16 +168,18 @@ b.SetSeed(328956)
 b.SetUnfoldType(ROOT.BootStrap.kBayes)
 b.SetRegParam(nReg)
 b.SetUMatrix(reco,gen,resp)
-b.SetData(data2)
+b.SetData(data2.Clone('bootstrap_data'))
 
 print "-> running BootStrap"
-## b.SetConfSigma(1)
-## b.SetConfSigmaGen(10)
-## b.SetSumW2()
+#b.SetConfSigma(1)
+#b.SetConfSigmaGen(10)
+#b.SetSumW2()
 ## ## kStd/kMin/kMedian/kMean
-## b.run(ROOT.BootStrapBase.kConfidence)
-## g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68);
+#b.run(ROOT.BootStrapBase.kConfidence)
+#g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68);
+#g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.58); ### ALMOST 68%: 1 / 10. / .58
 b.run(ROOT.BootStrapBase.kBootstrap)
+#g_bootstrap = b.result(ROOT.BootStrapBase.kStd,.68);
 g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68);
 
 print "-> plotting"
@@ -207,14 +264,42 @@ print " Bootstrap= ",bootstrap," | ", float(bootstrap)/tot*100, "%"
 c.SetLogy()
 
 
+ChangePalette()
+c2 = ROOT.TCanvas("c2","c2",600,10,800,600)
+
+c2.Divide(2)
+c2.cd(1)
+
+cov = u.Ereco(ROOT.RooUnfold.kCovToy)
+err = u.ErecoV(ROOT.RooUnfold.kCovToy)
+
+corr_bayes=ROOT.TH2D("corr_bayes","corr_bayes",N,0-.5,N-.5,N,-.5,N-.5)
+
+for i in range(0, N ):
+   for j in range(0, N):
+	corr_bayes.SetBinContent(i+1,j+1, cov(i,j) / (err(i)*err(j) ) )
+
+ltx=ROOT.TLatex()
+ltx.SetNDC()
+ltx.SetTextAlign(22)
+corr_bayes.Draw("COLZ")
+corr_bayes.GetZaxis().SetRangeUser(-1,1)
+ltx.DrawLatex(.5,.92,"Bayes Correlation Matrix")
+
+c2.cd(2)
+corr = b.correlation()
+corr.Draw("COLZ")
+corr.GetZaxis().SetRangeUser(-1,1)
+ltx.DrawLatex(.5,.92,"Bootstrap Correlation Matrix")
+
 ### DEBUG 
 SuperDebug=False
 if SuperDebug:
 	''' For these debug private/prodected members needs to be public'''
-	c2=ROOT.TCanvas("BootStrap","BootStrap",800,800)
-	c2.Divide(2,2)
+	c_debug=ROOT.TCanvas("BootStrap","BootStrap",800,800)
+	c_debug.Divide(2,2)
 	
-	c2.cd(1).SetLogy()
+	c_debug.cd(1).SetLogy()
 	
 	fold = b.Fold(gen)
 	fold.SetLineColor(ROOT.kMagenta)
@@ -222,19 +307,19 @@ if SuperDebug:
 	reco.Draw("HIST")
 	fold.Draw("HIST SAME")
 	
-	c2.cd(2).SetLogy()
+	c_debug.cd(2).SetLogy()
 	
 	b.f_resp_bkg_.Draw("HIST")
 	bkg.Draw("HIST SAME")
 	
-	c2.cd(3)
+	c_debug.cd(3)
 	b.f_resp_smear_.SetLineColor( ROOT.kRed)
 	b.f_resp_smear_.Draw("BOX")
 	
 	smear.SetFillColor(ROOT.kBlue-4)
 	smear.Draw("BOX SAME")
 	
-	c2.cd(4).SetLogy()
+	c_debug.cd(4).SetLogy()
 	gen.Draw("HIST")
 	b1=b.bootStrap()
 	b1.SetName("toy_1")
