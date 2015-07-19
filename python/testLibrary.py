@@ -182,7 +182,9 @@ c.SetRightMargin(0.02)
 
 gen.SetLineColor(ROOT.kRed)
 h_bayes.SetLineColor(ROOT.kGreen+2)
-h_bayes.SetFillColor(ROOT.kGreen)
+h_bayes.SetMarkerColor(ROOT.kGreen+2)
+h_bayes.SetMarkerStyle(29)
+h_bayes.SetFillColor(ROOT.kGreen-9)
 
 g_bootstrap.SetLineColor(ROOT.kBlue+2)
 g_bootstrap.SetMarkerColor(ROOT.kBlue+2)
@@ -319,6 +321,8 @@ if SuperDebug:
 	b1.SetLineColor(ROOT.kBlack)
 	b2.SetLineColor(ROOT.kBlue)
 
+c.Update()
+c2.Update()
 raw_input("Looks ok ? ")
 
 
