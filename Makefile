@@ -9,7 +9,8 @@ $(info You are Not on lxplus)
 ROOUNFOLD=$(HOME)/Downloads/RooUnfold-1.1.1/
 else
 $(info You are on lxplus)
-ROOUNFOLD=$(HOME)/work/RooUnfold/
+#ROOUNFOLD=$(HOME)/work/RooUnfold/
+ROOUNFOLD=/afs/cern.ch/user/a/amarini/public/RooUnfold/
 endif
 
 #CXXFLAGS += -L$(PWD)/../NeroProducer/Core/bin -lBare -Wl,-rpath=$(PWD)/../NeroProducer/Core/bin -ggdb
