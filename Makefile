@@ -1,16 +1,26 @@
 GCC=g++
-CXXFLAGS=`root-config --libs --cflags` -O2 -fPIC  -I./
+CXXFLAGS=`root-config --libs --cflags` -O2 -fPIC  -I./ -std=c++11
 ## to use RooUnfold
+lxplus=$(findstring lxplus, $(shell hostname -f) )
+###################### determine if you are on lxplus or not
+ifeq ($(strip $(lxplus)),)
+	## NOT ON LXPLUS
+$(info You are Not on lxplus)
+ROOUNFOLD=$(HOME)/Downloads/RooUnfold-1.1.1/
+else
+$(info You are on lxplus)
+ROOUNFOLD=$(HOME)/work/RooUnfold/
+endif
+
 #CXXFLAGS += -L$(PWD)/../NeroProducer/Core/bin -lBare -Wl,-rpath=$(PWD)/../NeroProducer/Core/bin -ggdb
-CXXFLAGS += -L/afs/cern.ch/user/a/amarini/work/RooUnfold/ -lRooUnfold -Wl,-rpath=/afs/cern.ch/user/a/amarini/work/RooUnfold/ -ggdb
-CXXFLAGS += -I/afs/cern.ch/user/a/amarini/work/RooUnfold/src/
-DICTFLAGS+= -I/afs/cern.ch/user/a/amarini/work/RooUnfold/src/
+CXXFLAGS += -L$(ROOUNFOLD)/ -lRooUnfold -Wl,-rpath=$(ROOUNFOLD) -ggdb
+CXXFLAGS += -I$(ROOUNFOLD)/src/
+DICTFLAGS+= -I$(ROOUNFOLD)/src/
 SOFLAGS=-shared
 
 SRCDIR=src
 BINDIR=bin
 HPPDIR=interface
-AUXDIR=aux
 
 SRC=$(wildcard $(SRCDIR)/*.cpp)
 OBJ=$(patsubst $(SRCDIR)/%.cpp, $(BINDIR)/%.o , $(SRC)  )
@@ -48,7 +58,6 @@ $(BINDIR)/dict.o: $(SRC) | $(BINDIR)
 
 $(BINDIR):
 	mkdir -p $(BINDIR)
-	mkdir -p $(AUXDIR)
 
 .PHONY: clean
 clean:
