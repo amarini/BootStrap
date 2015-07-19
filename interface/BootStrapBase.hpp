@@ -34,9 +34,7 @@ private:
 	TH1D* unf_;
 	TH1D* fold_;
 
-	int confCounter_;
-	int confSigma_ ;    // how far the toys are accepted
-	int confSigmaGen_ ; // how far the toys are generated -- only for SumW2
+	int verbose_;
 protected:
 	// ------------- templates goes in the h file
 	template<class T> void setPointer( T orig,T &target);
@@ -73,13 +71,10 @@ public:
 	// return and give back ownership
 	TH1D* releaseData(); 
 
-	enum RunType{kBootstrap=0,kConfidence=1};
 	// run BootStrap
-	void run(RunType type=kBootstrap);	
+	void run();	
 
 	//--
-	inline void SetConfSigma(int sigma){confSigma_ =sigma;};
-	inline void SetConfSigmaGen(int sigma){confSigmaGen_ =sigma;};
 	inline void SetSeed(long seed){seed_ = seed;};
 
 
@@ -95,6 +90,8 @@ public:
 	// 	points are the mean of toys and errors covers the smallest possible interval
 	TGraphAsymmErrors *result(ResultType type=kStd,float Q=0.68);
 	TH2D *correlation();
+	virtual void info(); // print info
+	inline void SetVerbose(int v){verbose_=v;}
 };
 
 // -- TEMPLATE DEFINITIONS

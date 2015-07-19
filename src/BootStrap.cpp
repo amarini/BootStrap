@@ -186,3 +186,10 @@ TH1D* BootStrap::Fold(TH1D* h)
 	if (VERBOSE >0 ) cout<<"[BootStrap]::[Fold]::[DEBUG] Folding distribution: Return; "<<endl;
 	return (TH1D*)fold;
 }
+
+void BootStrap::info(){
+	BootStrapBase::info();
+	cout <<"RegParam = "<<regParam_	<<endl;
+	cout <<"unfType = "<<unfType_<<"| kBayes="<<kBayes<<", kSvd="<<kSvd<<", kInv="<<kInv<<endl;
+	cout <<"------------------------------ "<<endl;
+}

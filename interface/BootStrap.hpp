@@ -52,6 +52,8 @@ public:
 
 	inline void SetUnfoldType( UnfoldType t){ unfType_ = t;}
 	inline void SetRegParam( int reg) { regParam_ = reg;}
+
+	virtual void info();
 };
 
 #endif

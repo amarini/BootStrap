@@ -158,25 +158,14 @@ b.SetRegParam(nReg)
 b.SetUMatrix(reco,gen,resp)
 b.SetData(data2.Clone('bootstrap_data'))
 
-print "-> running Confidence"
-b.SetSumW2()
-b.SetConfSigma(1)
-b.SetConfSigmaGen(10)
-b.run(ROOT.BootStrapBase.kConfidence)
-g_conf = b.result(ROOT.BootStrapBase.kMin,.68)
-g_conf = ROOT.utils.Shift(g_conf, -0.3, True)
 
 print "-> running BootStrap"
-#b.SetConfSigma(1)
-#b.SetConfSigmaGen(10)
 ## ## kStd/kMin/kMedian/kMean
-#b.run(ROOT.BootStrapBase.kConfidence)
 #g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68)
 #g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.58) ### ALMOST 68%: 1 / 10. / .58
-b.SetSumW2(0)
-b.run(ROOT.BootStrapBase.kBootstrap)
+b.run()
 #g_bootstrap = b.result(ROOT.BootStrapBase.kStd,.68)
-g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68)
+g_bootstrap = b.result(ROOT.BootStrap.kMedian,.68)
 
 g_bootstrap = ROOT.utils.Shift( g_bootstrap, 0.3, True)
 
@@ -200,11 +189,6 @@ g_bootstrap.SetMarkerColor(ROOT.kBlue+2)
 g_bootstrap.SetMarkerStyle(20)
 g_bootstrap.SetMarkerSize(0.8)
 
-g_conf.SetLineColor(ROOT.kViolet-3)
-g_conf.SetMarkerColor(ROOT.kViolet-3)
-g_conf.SetMarkerStyle(22)
-g_conf.SetMarkerSize(0.7)
-
 bkg.SetLineColor(ROOT.kGray+1)
 bkg.SetLineStyle(2)
 bkg.SetFillColor(ROOT.kGray)
@@ -222,7 +206,6 @@ bkg.Draw("HIST SAME")
 
 h_bayes.Draw("PE2 SAME")
 g_bootstrap.Draw("PE SAME")
-g_conf.Draw("PE SAME")
 gen.Draw("HIST SAME")
 #closure.Draw("HIST SAME")
 
@@ -237,7 +220,6 @@ l.SetBorderSize(0)
 l.AddEntry(gen,"truth","L")
 l.AddEntry(h_bayes,"bayes","LF")
 l.AddEntry(g_bootstrap,"bootstrap","PE")
-l.AddEntry(g_conf,"conf","PE")
 l.AddEntry(reco,"reco","L")
 l.AddEntry(bkg,"bkg","LF")
 l.AddEntry(data,"data","P")
