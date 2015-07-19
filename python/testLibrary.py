@@ -8,7 +8,7 @@ ROOT.gSystem.Load("bin/libBootStrap.so") # it will know where it is RooUnfold.so
 print "-> Creating Matrixes"
 
 r=ROOT.TRandom3(23149)
-N=50
+N=30
 
 NBkg=1.e3
 NSig=1e7
@@ -35,16 +35,22 @@ def ConstructTruth(type=1):
 	return gen
 
 ## construct probability smears
-def ConstructSmear():
+def ConstructSmear(type=1):
 	''' Generate a probability smear arbitrary. Sum Gen <=1'''
 	smear= ROOT.TH2D("smear","smear",N,0.,1.,N,0.,1.)
 	for i in range(0,N):
 	   for j in range(0,N):
 		iBin= i+1
 		jBin= j+1
-		if (iBin == jBin):smear.SetBinContent(iBin,jBin, 0.7) 
-		if (abs(iBin-jBin) == 1):smear.SetBinContent(iBin,jBin, 0.08) 
-		if (abs(iBin-jBin) == 2):smear.SetBinContent(iBin,jBin, 0.03) 
+		if type==1: ## pretty normal
+			if (iBin == jBin):smear.SetBinContent(iBin,jBin, 0.7) 
+			if (abs(iBin-jBin) == 1):smear.SetBinContent(iBin,jBin, 0.08) 
+			if (abs(iBin-jBin) == 2):smear.SetBinContent(iBin,jBin, 0.03) 
+		elif type ==2: #pretty off -diagonal
+			if (iBin == jBin):smear.SetBinContent(iBin,jBin, 0.5) 
+			if (abs(iBin-jBin) == 1):smear.SetBinContent(iBin,jBin, 0.15) 
+			if (abs(iBin-jBin) == 2):smear.SetBinContent(iBin,jBin, 0.08) 
+			if (abs(iBin-jBin) == 3):smear.SetBinContent(iBin,jBin, 0.02) 
 	return smear
 
 ## construct response matrix
@@ -111,29 +117,11 @@ class color():
 		self.g = self.rgb.g
 		self.b = self.rgb.b
 
-def ChangePalette():
-	white = color(ROOT.kWhite)
-	darkRed = color(ROOT.kRed+2)
-	red = color (ROOT.kRed)
-	black = color (ROOT.kBlack)
-	orange = color(ROOT.kOrange)
-	yellow = color(ROOT.kYellow)
-	darkBlue= color(ROOT.kBlue+2)
-	blue = color(ROOT.kBlue)
-	cyan = color(ROOT.kCyan)
-	
-	r    = numpy.array([darkRed.r, red.r, orange.r,  yellow.r,	white.r,	cyan.r, blue.r, darkBlue.r, black.r ], dtype=float)
-	g    = numpy.array([darkRed.g, red.g, orange.g,  yellow.g,	white.g,	cyan.g, blue.g, darkBlue.g, black.g ], dtype =float)
-	b    = numpy.array([darkRed.b, red.b, orange.b,  yellow.b,	white.b,	cyan.b, blue.b, darkBlue.b, black.b ], dtype =float)
-	stop = numpy.array([0.       ,  0.05,     0.10,       .30,	.5, 	            .7,     .9,        .95, 1.0 ], dtype =float)
-
-   	FI = ROOT.TColor.CreateGradientColorTable(9, stop, r, g, b, 255);
-   	ROOT.gStyle.SetNumberContours(99);
 ####################
 
 bkg  = ConstructBackground()
 gen  = ConstructTruth()
-smear= ConstructSmear()
+smear= ConstructSmear(2) ## 1 ~ diagonal, 2 ~ off-diagonal
 
 resp = ConstructResponse(gen,smear)
 reco = ConstructReco(bkg,resp)
@@ -170,17 +158,27 @@ b.SetRegParam(nReg)
 b.SetUMatrix(reco,gen,resp)
 b.SetData(data2.Clone('bootstrap_data'))
 
+print "-> running Confidence"
+b.SetSumW2()
+b.SetConfSigma(1)
+b.SetConfSigmaGen(10)
+b.run(ROOT.BootStrapBase.kConfidence)
+g_conf = b.result(ROOT.BootStrapBase.kMin,.68)
+g_conf = ROOT.utils.Shift(g_conf, -0.3, True)
+
 print "-> running BootStrap"
 #b.SetConfSigma(1)
 #b.SetConfSigmaGen(10)
-#b.SetSumW2()
 ## ## kStd/kMin/kMedian/kMean
 #b.run(ROOT.BootStrapBase.kConfidence)
-#g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68);
-#g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.58); ### ALMOST 68%: 1 / 10. / .58
+#g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68)
+#g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.58) ### ALMOST 68%: 1 / 10. / .58
+b.SetSumW2(0)
 b.run(ROOT.BootStrapBase.kBootstrap)
-#g_bootstrap = b.result(ROOT.BootStrapBase.kStd,.68);
-g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68);
+#g_bootstrap = b.result(ROOT.BootStrapBase.kStd,.68)
+g_bootstrap = b.result(ROOT.BootStrapBase.kMedian,.68)
+
+g_bootstrap = ROOT.utils.Shift( g_bootstrap, 0.3, True)
 
 print "-> plotting"
 
@@ -202,6 +200,11 @@ g_bootstrap.SetMarkerColor(ROOT.kBlue+2)
 g_bootstrap.SetMarkerStyle(20)
 g_bootstrap.SetMarkerSize(0.8)
 
+g_conf.SetLineColor(ROOT.kViolet-3)
+g_conf.SetMarkerColor(ROOT.kViolet-3)
+g_conf.SetMarkerStyle(22)
+g_conf.SetMarkerSize(0.7)
+
 bkg.SetLineColor(ROOT.kGray+1)
 bkg.SetLineStyle(2)
 bkg.SetFillColor(ROOT.kGray)
@@ -219,6 +222,7 @@ bkg.Draw("HIST SAME")
 
 h_bayes.Draw("PE2 SAME")
 g_bootstrap.Draw("PE SAME")
+g_conf.Draw("PE SAME")
 gen.Draw("HIST SAME")
 #closure.Draw("HIST SAME")
 
@@ -233,6 +237,7 @@ l.SetBorderSize(0)
 l.AddEntry(gen,"truth","L")
 l.AddEntry(h_bayes,"bayes","LF")
 l.AddEntry(g_bootstrap,"bootstrap","PE")
+l.AddEntry(g_conf,"conf","PE")
 l.AddEntry(reco,"reco","L")
 l.AddEntry(bkg,"bkg","LF")
 l.AddEntry(data,"data","P")
@@ -264,7 +269,7 @@ print " Bootstrap= ",bootstrap," | ", float(bootstrap)/tot*100, "%"
 c.SetLogy()
 
 
-ChangePalette()
+ROOT.utils.ChangePalette(1)
 c2 = ROOT.TCanvas("c2","c2",600,10,800,600)
 
 c2.Divide(2)
