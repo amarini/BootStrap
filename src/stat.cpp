@@ -211,7 +211,7 @@ float STAT::ConfidenceIntervalAround(
 	int m=ceil(n*Q/2.);
 	
 	size_t pos_low = (vpos > m)?vpos - m:0;
-	size_t pos_high =(vpos+m <n)? vpos + m : n;
+	size_t pos_high =(vpos+m <n)? vpos + m : n-1;
 	
 	r.first = v[pos_low];
 	r.second = v[pos_high];
