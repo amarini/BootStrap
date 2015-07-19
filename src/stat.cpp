@@ -20,7 +20,7 @@ float STAT::mean(vector<float> &a )
 	}
 float STAT::median(vector<float> &a)
 	{
-	sort(a.begin(),a.end() );
+	if( not is_sorted(a.begin(),a.end() ) ) sort(a.begin(),a.end() );
 	float M=0;
 	//must be sorted
 	int nEntries=a.size();
@@ -62,7 +62,7 @@ float STAT::corrSpearman(vector<float> &a ,vector<float> &b)
 	vector<pair<float,float> > v;
 	for(int i=0;i<int(a.size() );i++)
 		v.push_back(pair<float,float>(a[i],b[i]));
-	sort(v.begin(),v.end());
+	if( not is_sorted(v.begin(),v.end() ) ) sort(v.begin(),v.end());
 	//togli i valori uguali
 	vector<pair<float,float> > v2;//duplicate removal
 	float current=v[0].first;
@@ -181,7 +181,7 @@ void STAT::drawFitError(TH1*h,pair<float,float> &R,vector<float> &e2,float sigma
 }
 
 float STAT::ConfidenceInterval(std::vector<float> &v,std::pair<float,float>&r,float Q){
-	sort(v.begin(),v.end());
+	if( not is_sorted(v.begin(),v.end() ) ) sort(v.begin(),v.end());
 	int n=int(v.size()); 
 	int m=ceil(n*Q);
 	//Look for m consecutive bin such that the distance covered is minima
@@ -202,7 +202,7 @@ float STAT::ConfidenceIntervalAround(
 		std::vector<float> &v,float value, 
 		std::pair<float,float>&r, float Q)
 {
-	sort(v.begin(),v.end() );	
+	if( not is_sorted(v.begin(),v.end() ) )sort(v.begin(),v.end() );	
 	//find position of value
 	size_t vpos =0;
 	for(size_t i=0;i<v.size();++i) if (v[i]<= value) vpos=i;
