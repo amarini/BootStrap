@@ -177,11 +177,23 @@ ROOT.gStyle.SetOptStat(0)
 ROOT.gStyle.SetOptTitle(0)
 
 c= ROOT.TCanvas()
-c.SetTopMargin(0.02)
-c.SetBottomMargin(0.08)
-c.SetLeftMargin(0.08)
-c.SetRightMargin(0.02)
+p1 = ROOT.TPad("pad1","pad1", 0,.2,1,1)
+p2 = ROOT.TPad("pad2","pad2", 0,0,1,0.2)
+p1.Draw()
+p2.Draw()
 
+
+p1.SetTopMargin(0.02)
+p1.SetBottomMargin(0.08)
+p1.SetLeftMargin(0.08)
+p1.SetRightMargin(0.02)
+
+p2.SetTopMargin(0.02)
+p2.SetBottomMargin(0.35)
+p2.SetLeftMargin(0.08)
+p2.SetRightMargin(0.02)
+
+p1.cd()
 gen.SetLineColor(ROOT.kRed)
 h_bayes.SetLineColor(ROOT.kGreen+2)
 h_bayes.SetMarkerColor(ROOT.kGreen+2)
@@ -209,6 +221,11 @@ reco.SetLineColor(ROOT.kBlack)
 
 data.SetMarkerStyle(24)
 data.SetMarkerColor(ROOT.kMagenta)
+
+gen.GetYaxis().SetLabelFont(43)
+gen.GetYaxis().SetLabelSize(26)
+gen.GetXaxis().SetLabelFont(43)
+gen.GetXaxis().SetLabelSize(26)
 
 gen.Draw("AXIS")
 bkg.Draw("HIST SAME")
@@ -259,8 +276,26 @@ print " TOT      = ",tot
 print " Bayes    = ",bayes," | ", float(bayes)/tot*100, "%"
 print " Bootstrap= ",bootstrap," | ", float(bootstrap)/tot*100, "%"
 
-c.SetLogy()
+p1.SetLogy()
 
+p2.cd()
+
+gen_r = ROOT.utils.Ratio(gen,gen)
+
+gen_r.Draw("AXIS")
+gen_r.GetYaxis().SetNdivisions(204)
+gen_r.GetYaxis().SetRangeUser(-.1,2.3)
+
+h_bayes_r = ROOT.utils.Ratio(h_bayes,gen)
+h_bayes_r.Draw("PE2 SAME")
+g_bs_r = ROOT.utils.Ratio(g_bootstrap, gen)
+g_bs_r.Draw("PE SAME")
+g_bs2_r = ROOT.utils.Ratio(g_bs2, gen)
+g_bs2_r.Draw("PE SAME")
+
+gen_r.Draw("HIST SAME") 
+gen_r.Draw("AXIS SAME")
+gen_r.Draw("AXIS X+ Y+ SAME")
 
 ROOT.utils.ChangePalette(1)
 c2 = ROOT.TCanvas("c2","c2",600,10,800,600)

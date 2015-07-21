@@ -22,6 +22,9 @@ public:
 		RGB(int color){ SetRGB(color) ; } 
 		RGB(){ SetRGB(0);}
 	};
+
+	static TGraphAsymmErrors* Ratio(TGraphAsymmErrors* g, TH1*base);
+	static TH1* Ratio(TH1* h, TH1*base);
 };
 
 #endif

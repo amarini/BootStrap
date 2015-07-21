@@ -4,6 +4,8 @@
 #include "TROOT.h"
 #include "TStyle.h"
 #include "TColor.h"
+#include "TH1F.h"
+#include "TH1D.h"
 
 using namespace std;
 
@@ -84,4 +86,36 @@ TGraphAsymmErrors* utils::Shift(TGraphAsymmErrors* g,float dx,bool fraction)
 	return g_new;
 }
 
+TGraphAsymmErrors * utils::Ratio(TGraphAsymmErrors *g, TH1*base)
+{
+	TGraphAsymmErrors *ratio = (TGraphAsymmErrors*)g->Clone(Form("%s_ratio",g->GetName()) ) ;
+	if (g->GetN() != base->GetNbinsX() ) 
+	{
+		cout<<"Error: ratio bins should match"<<endl;
+	}
+	for(int i=0;i< g->GetN();++i)
+	{
+		double x= g->GetX()[i];	
+		double y= g->GetY()[i];	
+		double eyl= g->GetEYlow()[i];	
+		double eyh= g->GetEYhigh()[i];	
+		double b = base->GetBinContent(i+1); // only content. shift by one.
 
+		ratio->SetPoint(i, x , y/b);
+		ratio->SetPointError(i, 0,0 , eyl/b,eyh/b);
+	}
+	return ratio;
+}
+
+TH1* utils::Ratio(TH1* h, TH1*base){
+	TH1* ratio= (TH1*) h->Clone(Form("%s_ratio",h->GetName()));
+	TH1* base2= (TH1*) base->Clone(Form("%s_base",base->GetName()));
+	// fix error propagation
+	for(int i=0;i<base2->GetNbinsX()+1 ;++i)
+		base2->SetBinError(i,0);
+	
+	ratio->Divide(base2);
+	base2->Delete();
+	
+	return ratio;
+}
