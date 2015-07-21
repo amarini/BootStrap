@@ -1,5 +1,6 @@
 #include <vector>
 #include <algorithm>
+#include <iostream>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -216,4 +217,73 @@ float STAT::ConfidenceIntervalAround(
 	r.first = v[pos_low];
 	r.second = v[pos_high];
 	return  (r.second-r.first)/2.;
+}
+
+float STAT::max(vector<float> &a)
+{
+	if (a.size() ==0 )
+	{
+		cout <<"[STAT]::[max]::[ERROR] a.size = 0 "<<endl;
+		return -999;
+	}
+	float m=a[0];
+	for(size_t i=0;i<a.size();++i) m = (m<a[i]) ? a[i] :m; 
+	return m;
+}
+
+float STAT::min(vector<float> &a)
+{
+	if (a.size() ==0 )
+	{
+		cout <<"[STAT]::[min]::[ERROR] a.size = 0 "<<endl;
+		return -999;
+	}
+	float m=a[0];
+	for(size_t i=0;i<a.size();++i) m = (m>a[i]) ? a[i] :m; 
+	return m;
+}
+
+void STAT::Fill(std::vector<float> &v, TH1*h)
+{
+	h->Reset("ACE");
+	for(size_t i=0;i<v.size() ;++i)
+		h->Fill(v[i]);
+	return;
+}
+
+void STAT::Fill(std::vector<float> &a, std::vector<float> &b, TH2*h)
+{
+	h->Reset("ACE");
+	if (a.size() != b.size())
+		{
+		cout<<"[STAT]::[Fill]::[ERROR] a and b vectors should have same size"<<endl;
+		return;
+		}
+	for(size_t i=0;i<a.size() ;++i)
+		h->Fill(a[i],b[i]);
+	return;
+}
+
+
+#include "TMath.h"
+TH1F *STAT::GetDensity(std::vector<float> &v, float R )
+{
+	if( not is_sorted(v.begin(),v.end() )) sort(v.begin(), v.end() );
+	float low= v[0];
+	float high = v[ v.size() -1 ] ;
+	float diff = high -low;
+	// 100 bins, in a range a bit (10%) extended
+	TH1F *h = new TH1F("density","density",1000, low-.1*diff, high+.1*diff);
+
+	for( int i=1 ;i < h->GetNbinsX() +1 ;++i) 
+	{
+		float mean = h->GetBinCenter(i);	
+		float S=0;
+		for(int j=0;j<v.size();++j)
+			S+=TMath::Gaus( v[j], mean, R , kTRUE);
+		S/=float(v.size());
+		h->SetBinContent(i,S);
+			
+	}
+	return h;
 }
