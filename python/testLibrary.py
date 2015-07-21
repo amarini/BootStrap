@@ -379,6 +379,9 @@ ex2.Draw()
 toyDistr2.Draw("COLZ SAME")
 ltx.DrawLatex(.5,.92,"Toy Correlation for bins %d-%d"%(bin,bin+1))
 
+## c3 =ROOT.TCanvas("c4","c4",800,800)
+## smear.Draw("BOX")
+
 ### DEBUG 
 SuperDebug=False
 if SuperDebug:
