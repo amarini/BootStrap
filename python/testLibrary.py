@@ -176,7 +176,7 @@ print "-> plotting"
 ROOT.gStyle.SetOptStat(0)
 ROOT.gStyle.SetOptTitle(0)
 
-c= ROOT.TCanvas()
+c= ROOT.TCanvas("c1","c1",600,800)
 p1 = ROOT.TPad("pad1","pad1", 0,.2,1,1)
 p2 = ROOT.TPad("pad2","pad2", 0,0,1,0.2)
 p1.Draw()
@@ -379,8 +379,16 @@ ex2.Draw()
 toyDistr2.Draw("COLZ SAME")
 ltx.DrawLatex(.5,.92,"Toy Correlation for bins %d-%d"%(bin,bin+1))
 
-## c3 =ROOT.TCanvas("c4","c4",800,800)
-## smear.Draw("BOX")
+c4 =ROOT.TCanvas("c4","c4",400,400)
+##ex3 = ROOT.TExec("ex2","utils::ChangePalette(3);");
+smear.Draw("AXIS")
+###ex3.Draw()
+smear.Draw("BOX SAME")
+smear.GetYaxis().SetTitle("truth")
+smear.GetXaxis().SetTitle("measured")
+smear.GetYaxis().SetTitleOffset(1.2)
+smear.Draw("AXIS SAME")
+smear.Draw("AXIS X+ Y+ SAME")
 
 ### DEBUG 
 SuperDebug=False

@@ -55,6 +55,15 @@ void utils::ChangePalette(int type)
 	        	  Int_t FI = TColor::CreateGradientColorTable(2, stops, red, green, blue, 255);
 	        	  gStyle->SetNumberContours(255);
 			}; break; //gg
+		case 3:{ //  White -> darkRed
+	        	double r[] = { white.r, yellow.r, orange.r, red.r, darkRed.r ,black.r};
+	        	double g[] = { white.g, yellow.g, orange.g, red.g, darkRed.g ,black.g};
+	        	double b[] = { white.b, yellow.b, orange.b, red.b, darkRed.b ,black.b};
+	        	double stops[] = {0.,0.020, 0.45, .7, .8, .95, 1.0 };
+	
+	        	Int_t FI = TColor::CreateGradientColorTable(7, stops, r, g, b, 255);
+	        	gStyle->SetNumberContours(99);
+			};break; // 
 	
 		}
 
