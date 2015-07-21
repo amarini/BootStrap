@@ -92,6 +92,10 @@ public:
 	TH2D *correlation();
 	virtual void info(); // print info
 	inline void SetVerbose(int v){verbose_=v;}
+	
+	// Get Toy Distribution for bin 
+	TH1F* GetToyDistribution(int bin);
+	TH2F* GetToyDistribution(int bin1,int bin2);
 };
 
 // -- TEMPLATE DEFINITIONS

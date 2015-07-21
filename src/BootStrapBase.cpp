@@ -257,3 +257,39 @@ void BootStrapBase::info(){
 	cout <<"------------------------------ "<<endl;
 }
 
+TH1F* BootStrapBase::GetToyDistribution(int bin)
+{
+	if ( bootstrap_.size() == 0 )return NULL;
+	if ( bin< 1 or bin > bootstrap_[0]->GetNbinsX() ) return NULL;
+	vector<float> values;
+	for(size_t i=0;i< bootstrap_.size() ;++i)
+		values.push_back( bootstrap_[i]->GetBinContent(bin) );
+	float low= STAT::min(values);
+	float high= STAT::max(values);
+	TH1F * h = new TH1F(Form("toy_distribution_bin%d",bin),Form("toy_bin%d",bin),100,low,high);
+	//float sigma = STAT::rms(values);
+	STAT::Fill(values,h);
+	return h;
+}
+
+TH2F* BootStrapBase::GetToyDistribution(int bin1,int bin2)
+{
+	if ( bootstrap_.size() == 0 )return NULL;
+	if ( bin1< 1 or bin1 > bootstrap_[0]->GetNbinsX() ) return NULL;
+	if ( bin2< 1 or bin2 > bootstrap_[0]->GetNbinsX() ) return NULL;
+	vector<float> valuesX;
+	vector<float> valuesY;
+	for(size_t i=0;i< bootstrap_.size() ;++i)
+		{
+		valuesX.push_back( bootstrap_[i]->GetBinContent(bin1) );
+		valuesY.push_back( bootstrap_[i]->GetBinContent(bin2) );
+		}
+	float Xlow= STAT::min(valuesX);
+	float Xhigh= STAT::max(valuesX);
+	float Ylow= STAT::min(valuesY);
+	float Yhigh= STAT::max(valuesY);
+	TH2F * h = new TH2F(Form("toy_distribution_bin%d_bin%d",bin1,bin2),Form("toy_bin%d_%d",bin1,bin2),100,Xlow,Xhigh,100,Ylow,Yhigh);
+	//float sigma = STAT::rms(values);
+	STAT::Fill(valuesX,valuesY,h);
+	return h;
+}

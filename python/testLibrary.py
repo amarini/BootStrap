@@ -280,15 +280,69 @@ for i in range(0, N ):
 ltx=ROOT.TLatex()
 ltx.SetNDC()
 ltx.SetTextAlign(22)
-corr_bayes.Draw("COLZ")
+corr_bayes.Draw("AXIS")
+ex1 = ROOT.TExec("ex2","utils::ChangePalette(1);");
+ex1.Draw("SAME")
+corr_bayes.Draw("COLZ SAME")
 corr_bayes.GetZaxis().SetRangeUser(-1,1)
 ltx.DrawLatex(.5,.92,"Bayes Correlation Matrix")
 
 c2.cd(2)
 corr = b.correlation()
-corr.Draw("COLZ")
+corr.Draw("AXIS")
+ex1.Draw("SAME")
+corr.Draw("COLZ SAME")
 corr.GetZaxis().SetRangeUser(-1,1)
 ltx.DrawLatex(.5,.92,"Bootstrap Correlation Matrix")
+
+### SHOW SOME TOY DISTRIBUTION
+c3 = ROOT.TCanvas("c3","c3",1200,10,800,600)
+c3.Divide(2)
+c3.cd(1)
+bin=4
+toyDistr=b.GetToyDistribution(bin)
+toyDistr.Draw("HIST")
+y	= g_bootstrap.GetY()[bin-1]
+ylow	= y-g_bootstrap.GetEYlow()[bin-1]
+yhigh	= y+g_bootstrap.GetEYhigh()[bin-1]
+
+up = toyDistr.GetMaximum()*.3
+g_median=ROOT.TGraph()
+g_median.SetName("g_median")
+g_median.SetPoint(0,y,0)
+g_median.SetPoint(1,y,up)
+
+g_low=ROOT.TGraph()
+g_low.SetName("g_low")
+g_low.SetPoint(0,ylow,0)
+g_low.SetPoint(1,ylow,up)
+
+g_high=ROOT.TGraph()
+g_high.SetName("g_high")
+g_high.SetPoint(0,yhigh,0)
+g_high.SetPoint(1,yhigh,up)
+
+g_median.SetLineColor(ROOT.kRed)
+g_low.SetLineColor(ROOT.kBlue)
+g_high.SetLineColor(ROOT.kBlue)
+
+g_median.SetLineWidth(3)
+g_low.SetLineWidth(2)
+g_high.SetLineWidth(2)
+g_median.Draw("L SAME")
+g_low.Draw("L SAME")
+g_high.Draw("L SAME")
+
+ltx.DrawLatex(.5,.92,"Toy Distribution for bin %d"%bin)
+
+ROOT.utils.ChangePalette(2)
+c3.cd(2)
+toyDistr2=b.GetToyDistribution(bin,bin+1)
+toyDistr2.Draw("AXIS")
+ex2 = ROOT.TExec("ex2","utils::ChangePalette(2);");
+ex2.Draw()
+toyDistr2.Draw("COLZ SAME")
+ltx.DrawLatex(.5,.92,"Toy Correlation for bins %d-%d"%(bin,bin+1))
 
 ### DEBUG 
 SuperDebug=False
