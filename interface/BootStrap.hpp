@@ -7,32 +7,16 @@
  */
 
 #include "interface/BootStrapBase.hpp"
+#include "interface/BootStrapMatrix.hpp"
 #include "RooUnfoldResponse.h"
 
 // --- this class implements the rooUnfold unfolding
-class BootStrap : virtual public BootStrapBase
+class BootStrap : virtual public BootStrapMatrix
 {
 public:
 	enum UnfoldType	{kBayes=0,kSvd=1,kInv=2};
 
 private:
-	// --- matrix -- 
-	// in principle can be different ... 
-	// needs studies (related to model dependence)
-	TH1D * u_reco_;
-	TH1D * u_truth_;
-	TH2D * u_resp_;
-	// ------
-	TH1D * f_reco_;
-	TH1D * f_truth_;
-	TH2D * f_resp_;
-
-	// --- projections
-	//
-	TH1D * f_resp_bkg_;
-	TH2D * f_resp_smear_;
-	
-	void ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp);
 
 	int regParam_;
 	UnfoldType unfType_;	
@@ -43,12 +27,8 @@ public:
 	~BootStrap() ;
 
 	//
-	TH1D* Unfold(TH1D*);
-	TH1D* Fold(TH1D*);
+	virtual TH1D* Unfold(TH1D*);
 
-	// SetMatrixes: Unfolding and or Folding. If Folding is NULL or unset, will use the same matrix.
-	void SetUMatrix(TH1D* reco, TH1D* truth, TH2D* resp);
-	void SetFMatrix(TH1D* reco, TH1D* truth, TH2D* resp);
 
 	inline void SetUnfoldType( UnfoldType t){ unfType_ = t;}
 	inline void SetRegParam( int reg) { regParam_ = reg;}

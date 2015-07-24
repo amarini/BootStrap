@@ -78,7 +78,10 @@ Two classes has been implemnted so far:
 * implements the bootstrapping techinques
 * run() call bootStrap() for the toy production.
 
+**BootStrapMatrix**
+* Implements the matrix construction with the three histograms
+* Implements the unfolding using the analytical inversion (not squared)
+* the Folding method assumes that matrix performs a smearing, and sums a bkg contribution. No NULL element is supported for the moment.
 
 **BootStrap**
-* implements the Folding and Unfolding methods using RooUnfold.
-* the Folding method assumes that matrix performs a smearing, and sums a bkg contribution. No NULL element is supported for the moment.
+* implements the Unfolding methods using RooUnfold.

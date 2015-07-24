@@ -54,7 +54,7 @@ public:
 	BootStrapBase();
 	BootStrapBase(int ntoys);
 	// --- Destructor
-	~BootStrapBase();
+	virtual ~BootStrapBase();
 
 	// --- Virtual  members that do the folding / Unfolding
 	virtual TH1D* Unfold(TH1D*) = 0;
