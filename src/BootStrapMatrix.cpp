@@ -17,6 +17,9 @@ BootStrapMatrix::BootStrapMatrix(): BootStrapBase() {
 
 	f_resp_bkg_ = NULL;
 	f_resp_smear_ = NULL;
+
+	u_resp_bkg_ = NULL;
+	u_resp_smear_ = NULL;
 }
 
 BootStrapMatrix::~BootStrapMatrix(){
@@ -63,30 +66,38 @@ void BootStrapMatrix::SetFMatrix(TH1D* reco, TH1D* truth, TH2D* resp)
 
 	f_resp_bkg_ = NULL;
 	f_resp_smear_ = NULL;
+
+	u_resp_bkg_ = NULL;
+	u_resp_smear_ = NULL;
 }
 
 void BootStrapMatrix::ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp){
-	if (VERBOSE >0 ) cout<<"[BootStrapMatrix]::[Fold]::[DEBUG] Folding distribution "<<endl;
+	// default construct projections for folding
+	ConstructProjections(reco,truth,resp,f_resp_bkg_,f_resp_smear_);
+}
+
+void BootStrapMatrix::ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp, TH1D* &bkg, TH2D* &smear){
+	if (VERBOSE >0 ) cout<<"[BootStrapMatrix]::[ConstructProjections]::[DEBUG] Folding distribution "<<endl;
 	//get projections
 	//"measured" and "truth" give the projections of "response" onto the X-axis and Y-axis respectively,
 	//construct bkg
-	if (VERBOSE >0 ) cout<<"[BootStrapMatrix]::[Fold]::[DEBUG] Construct bkg "<<endl;
-	if (f_resp_bkg_ == NULL) 
+	if (VERBOSE >0 ) cout<<"[BootStrapMatrix]::[ConstructProjections]::[DEBUG] Construct bkg "<<endl;
+	if (bkg == NULL) 
 	{
-		f_resp_bkg_ = resp->ProjectionX();
-		for(int i=0;i<=f_resp_bkg_->GetNbinsX()+1 ;++i)
+		bkg = resp->ProjectionX();
+		for(int i=0;i<=bkg->GetNbinsX()+1 ;++i)
 		{
 			float r = reco->GetBinContent(i);
-			float genreco = f_resp_bkg_->GetBinContent(i);
-			f_resp_bkg_ -> SetBinContent(i, r - genreco);
+			float genreco = bkg->GetBinContent(i);
+			bkg -> SetBinContent(i, r - genreco);
 		}
 	}
 
-	if (VERBOSE >0 ) cout<<"[BootStrapMatrix]::[Fold]::[DEBUG] Construct smear "<<endl;
-	if( f_resp_smear_ == NULL) 
+	if (VERBOSE >0 ) cout<<"[BootStrapMatrix]::[ConstructProjections]::[DEBUG] Construct smear "<<endl;
+	if( smear == NULL) 
 	{
-		f_resp_smear_ = (TH2D*)resp->Clone("reps_smear");
-		f_resp_smear_ -> Reset("ACE");
+		smear = (TH2D*)resp->Clone(Form("%s_reps_smear",resp->GetName()));
+		smear -> Reset("ACE");
 		for(int i=0;i<= resp->GetNbinsX()+1 ;++i)
 		{
 			for(int j=0;j<= resp->GetNbinsY()+1 ;++j)
@@ -94,11 +105,13 @@ void BootStrapMatrix::ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp){
 			float c = resp->GetBinContent(i,j);
 			float g = truth->GetBinContent(j);
 			if(g==0) continue;
-			f_resp_smear_->SetBinContent(i,j, c/g) ;
+			smear->SetBinContent(i,j, c/g) ;
 			}
 		}
 	}
 
+
+	if (VERBOSE >0 ) cout<<"[BootStrapMatrix]::[ConstructProjections]::[DEBUG] DONE "<<endl;
 	return;
 }
 
@@ -154,30 +167,44 @@ TH1D* BootStrapMatrix::Fold(TH1D* h)
 
 void BootStrapMatrix::info(){
 	BootStrapBase::info();
+	cout <<"------- BOOTSTRAP MATRIX ------- "<<endl;
+	cout <<"-------------------------------- "<<endl;
 }
 
 void BootStrapMatrix::ConstructMatrixes(TH1D* data){
 	// Construct the TMatrix used for unfolding with ML
-	ConstructProjections(u_reco_,u_truth_,u_resp_);
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Constructing Matrixes"<<endl;
+	ConstructProjections(u_reco_,u_truth_,u_resp_, u_resp_bkg_, u_resp_smear_);
 
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Resize"<<endl;
 	int nreco= u_reco_->GetNbinsX();
 	int ntruth= u_truth_->GetNbinsX();
 	y.ResizeTo( nreco ) ;
 	l.ResizeTo( ntruth ) ;
 	K.ResizeTo( ntruth, nreco );
 
-	K=getMatrix(  u_resp_ );
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Converting"<<endl;
+	//K=getMatrix(  u_resp_ );
+	K=getMatrix(  u_resp_smear_ );
+
 	S.ResizeTo( nreco,nreco); // no Overflow
 	for(int i=1 ;i<= nreco ;++i)
 		{
-		S(i,i) =  data->GetBinError(i);
+		S(i-1,i-1) =  TMath::Sqrt(data->GetBinContent(i));// sqrt  SUMW2
 		}
 
-	y= getVector(data);
+	y= getVector(data); // y should be vector subtracted
+	for(int i=0;i<y.GetNrows() ;++i) // no overflow
+	{
+		y(i) -= u_resp_bkg_->GetBinContent(i+1);
+	}
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] DONE"<<endl;
 }
 
 TMatrixD BootStrapMatrix::getMatrix(TH2*h, bool useOverFlow)
 {
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[getMatrix]::[2] START"<<endl;
+	if (h==NULL) cout<<"[BootStrapMatrix]::[getMatrix]::[ERROR] h is NULL"<<endl;
 	TMatrixD r;
 	int n=h->GetNbinsX();
 	int m=h->GetNbinsY();
@@ -197,6 +224,7 @@ TMatrixD BootStrapMatrix::getMatrix(TH2*h, bool useOverFlow)
 		for(int jBin=0;jBin<=h->GetNbinsY()+1;jBin++)
 			r(iBin,jBin)=h->GetBinContent(iBin,jBin);
 	}
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[getMatrix]::[2] END"<<endl;
 	return r;
 }
 
@@ -219,15 +247,34 @@ TVectorD BootStrapMatrix::getVector(TH1*h,bool useOverFlow)
 	return r;
 }
 
+void BootStrapMatrix::printMatrix(TMatrixD&m, string name)
+{
+	cout << "---------- M "<<name<<" ---------"<<endl;
+	for(int i=0;i<m.GetNrows() ;++i)
+	{
+		for(int j=0;j<m.GetNcols();++j)
+			cout<< m(i,j) <<" ";
+		cout <<endl;
+	}
+	cout << "-----------E "<<name<<" ---------"<<endl;
+}
+
 TH1D* BootStrapMatrix::Unfold(TH1D*data)
 {
-	cout<<"[BootStrapMatrix]::[Unfold]::[WARNING] procedure not checked !"<<endl;
-
-	ConstructMatrixes(data);
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Constructing Matrixes"<<endl;
+	ConstructMatrixes(data); // get y = (data sub) , K (smear matrix) , 
 	// implement the pseudo inverse
 
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Work with Matrixes"<<endl;
 	TMatrixD Kt(K.GetNcols(),K.GetNrows()); Kt.Transpose(K);
 	TMatrixD A=Kt*S*K; 
+
+	if (VERBOSE >1)
+		{
+		printMatrix( K,"K");
+		printMatrix( S,"S");
+		printMatrix( A,"A");
+		}
 	// make sure A is >0
 		float epsilon=0;
 		while ( A.Determinant() == 0)
@@ -237,15 +284,19 @@ TH1D* BootStrapMatrix::Unfold(TH1D*data)
 			epsilon += 0.0001;
 		}
 		if(epsilon >0 ) cout<<"[BootStrapMatrix]::[Unfold]::[INFO] used epsilon="<<epsilon<<" for inversion purpose"<<endl;
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Inverting A"<<endl;
 	A.Invert();
 	//l=A*Kt*S*y;
 	TMatrixD B=A*Kt*S;
 	l=B*y;
 
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Compute Analytical covariance matrix"<<endl;
 	// Analytical error propagation	
 	TMatrixD Bt(B.GetNcols(),B.GetNrows()); Bt.Transpose(B);
 	TMatrixD cov; cov.ResizeTo(l.GetNrows(),l.GetNrows());
 	cov = (B*S*Bt);  //covariance matrix after linear transformation
+
+	// COPYING INFO
 	TH1D *result = (TH1D*)data->Clone(Form("%s_analyticalunf",data->GetName()));
 	result->Reset("ACE");
 	for(int i=1;i<=result->GetNbinsX() ;++i)
@@ -253,6 +304,7 @@ TH1D* BootStrapMatrix::Unfold(TH1D*data)
 		result->SetBinContent(i, l(i-1) );
 		result->SetBinError(i, TMath::Sqrt(TMath::Max( double(cov(i-1,i-1)),double(0.))) ) ;
 		}
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Done"<<endl;
 
 	return result;
 }

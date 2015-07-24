@@ -33,8 +33,13 @@ protected: // RooUnfold will need access to these elements
 	//
 	TH1D * f_resp_bkg_;
 	TH2D * f_resp_smear_;
+
+	// --- projections2
+	TH1D * u_resp_bkg_;
+	TH2D * u_resp_smear_;
 	
 	void ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp);
+	void ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp, TH1D* &bkg, TH2D* &smear);
 private:
 	TMatrixD K,S; //y = K * x + b
 		// solution is (Kt*S*K+eI)^-1 Kt S
@@ -42,6 +47,7 @@ private:
 	void ConstructMatrixes(TH1D*data);
 	TMatrixD getMatrix(TH2*h, bool useOverFlow=false);
 	TVectorD getVector(TH1*h, bool useOverFlow=false);
+	void printMatrix(TMatrixD&,string name="");
 public:
 	// constructor 
 	BootStrapMatrix();

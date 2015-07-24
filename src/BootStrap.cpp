@@ -52,6 +52,7 @@ TH1D* BootStrap::Unfold(TH1D* h)
 
 void BootStrap::info(){
 	BootStrapMatrix::info();
+	cout <<"---------- BOOTSTRAP ----------- "<<endl;
 	cout <<"RegParam = "<<regParam_	<<endl;
 	cout <<"unfType = "<<unfType_<<"| kBayes="<<kBayes<<", kSvd="<<kSvd<<", kInv="<<kInv<<endl;
 	cout <<"------------------------------ "<<endl;
