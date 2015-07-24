@@ -87,14 +87,14 @@ def ConstructData(reco):
 		data.SetBinContent(iBin, c ) 
 	return data
 
-ROOT.gROOT.ProcessLine (\
-		"struct RGB{ \
-		float r;\
-		float g;\
-		float b;\
-		void SetRGB(int color) { gROOT->GetColor(color)->GetRGB(r,g,b); } \
-		};" )
-from ROOT import RGB
+## ROOT.gROOT.ProcessLine (\
+## 		"struct RGB{ \
+## 		float r;\
+## 		float g;\
+## 		float b;\
+## 		void SetRGB(int color) { gROOT->GetColor(color)->GetRGB(r,g,b); }; \
+## 		};" )
+## from ROOT import RGB
 
 ## def rgb(color):
 ## 	r= float(0.)
@@ -104,18 +104,18 @@ from ROOT import RGB
 ## 	ROOT.gROOT.GetColor(color).GetRGB(r,g,b)
 ## 	return (r,g,b)
 
-class color():
-	def __init__(self):
-		self.r = 0
-		self.g = 0
-		self.b = 0
-		self.rgb = RGB(0)
-	def __init__(self,color):
-		self.rgb = RGB()
-		self.rgb.SetRGB(color)
-		self.r = self.rgb.r
-		self.g = self.rgb.g
-		self.b = self.rgb.b
+### class color():
+### 	def __init__(self):
+### 		self.r = 0
+### 		self.g = 0
+### 		self.b = 0
+### 		self.rgb = RGB(0)
+### 	def __init__(self,color):
+### 		self.rgb = RGB()
+### 		self.rgb.SetRGB(color)
+### 		self.r = self.rgb.r
+### 		self.g = self.rgb.g
+### 		self.b = self.rgb.b
 
 ####################
 

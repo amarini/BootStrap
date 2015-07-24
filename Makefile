@@ -14,7 +14,7 @@ ROOUNFOLD=/afs/cern.ch/user/a/amarini/public/RooUnfold/
 endif
 
 #CXXFLAGS += -L$(PWD)/../NeroProducer/Core/bin -lBare -Wl,-rpath=$(PWD)/../NeroProducer/Core/bin -ggdb
-CXXFLAGS += -L$(ROOUNFOLD)/ -lRooUnfold -Wl,-rpath=$(ROOUNFOLD) -ggdb
+CXXFLAGS += -L$(ROOUNFOLD)/ -lRooUnfold -ggdb
 CXXFLAGS += -I$(ROOUNFOLD)/src/
 DICTFLAGS+= -I$(ROOUNFOLD)/src/
 SOFLAGS=-shared
@@ -40,6 +40,16 @@ $(info I ll sleep 3s to let you acknowledge it)
 $(shell sleep 3s)
 else
 $(info CMSSW found: $(CMSSW_BASE) )
+endif
+
+## if on mac add the -p to the  DICTFLAGS
+UNAME=$(shell uname)
+ifeq ($(UNAME),Darwin)
+$(info You are compiling on mac)
+DICTFLAGS += -p
+else 
+$(info Your are on a linux machine)
+CXXFLAGS +=  -Wl,-rpath=$(ROOUNFOLD) 
 endif
 
 # check if Combine is present and compiled 
