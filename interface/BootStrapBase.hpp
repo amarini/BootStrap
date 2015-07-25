@@ -64,6 +64,7 @@ public:
 	// --- Virtual  members that do the folding / Unfolding
 	virtual TH1D* Unfold(TH1D*) = 0;
 	virtual TH1D* Fold(TH1D*) = 0 ;
+	inline virtual TH1D* UnfoldLikelihood(TH1D*h) { return Unfold(h) ;}
 
 	// member functions
 	// set number of toys

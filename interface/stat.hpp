@@ -43,6 +43,10 @@ public:
 	// --- half confidence below the given value, half above
 	static float ConfidenceIntervalAround(std::vector<float> &v,float value, std::pair<float,float>&r, float Q);
 
+	// --- chi2, (x-y)^2/e^2 iff elow is empty, error are on b
+	//           (x-y)^2/elow^2 iff x<y  or ehigh iff x>y
+	//           if corr is not empty use also correlation matrix
+	static float Chi2( vector<float> &a, vector<float> &b, vector<float> &ehigh, vector<float> &elow ,map<pair<int,int>,float> &corr);
 	//  ---------------- ROOT -------------
 	// draw fit errors on the histogram h (already existnig ).
 	// e2 is the covariance matrix, as above.  (regression)

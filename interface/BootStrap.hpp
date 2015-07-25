@@ -28,6 +28,7 @@ public:
 
 	//
 	virtual TH1D* Unfold(TH1D*);
+	virtual TH1D* UnfoldLikelihood(TH1D*h) ;
 
 
 	inline void SetUnfoldType( UnfoldType t){ unfType_ = t;}

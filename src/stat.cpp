@@ -243,6 +243,59 @@ float STAT::min(vector<float> &a)
 	return m;
 }
 
+// --------------- ROOT -----------
+#include "TMatrixD.h"
+#include "TVectorD.h"
+
+float STAT::Chi2( vector<float> &a, vector<float> &b, vector<float> &ehigh, vector<float> &elow ,map<pair<int,int>,float> &corr)
+{
+	bool symm = elow.empty();
+	bool useCorr = corr.empty();
+
+	if (a.size() != b.size()) { cout <<"[STAT]::[Chi2]::[ERROR] a.size != b.size()"<<endl; return -999;}
+	if (b.size() != ehigh.size()) { cout <<"[STAT]::[Chi2]::[ERROR] b.size != e.size()"<<endl; return -999.;}
+
+	vector<float> e ;	
+	if (symm) for( auto x : ehigh ) e.push_back(x);
+	else
+		{
+		if (elow.size() != ehigh.size() ) {cout<<"[STAT]::[Chi2]::[ERROR] elow.size() != ehigh.size()"<<endl; return -999;}
+		for( size_t i = 0 ;i< a.size() ;++i)
+			{
+			if (a[i]< b[i] ) e.push_back( elow[i] );
+			else e.push_back(ehigh[i]);
+			}
+		} // else
+	float chi2 =0;	
+	if ( useCorr ) {
+		for( size_t i = 0 ;i< a.size() ;++i)
+			chi2 += (a[i] - b[i]) * (a[i] - b[i]) / (e[i]*e[i]);
+
+		}
+	else {
+		TVectorD x;
+		TMatrixD S;
+		x.ResizeTo( a.size() );
+		S.ResizeTo(a.size(),a.size());
+
+		for( size_t i = 0 ;i< a.size() ;++i)
+			x(i) = a[i]-b[i];
+
+		for( size_t i = 0 ;i< a.size() ;++i)
+		for( size_t j = 0 ;j< a.size() ;++j)
+			{
+			if (i==j and corr[pair<int,int>(i,j)] != 1)
+				cout <<"[STAT]::[Chi2]::[WARNING] diagonal element are not one"<<endl;
+			S(i,j) = corr[ pair<int,int>(i,j) ] * e[i]*e[j];
+			}
+		if (S.Determinant() == 0 ) cout<<"[STAT]::[Chi2]::[ERROR] Covariance matrix is singular"<<endl;
+		S.Invert();
+
+		chi2=x*(S*x);
+		}
+	return chi2;
+}
+
 void STAT::Fill(std::vector<float> &v, TH1*h)
 {
 	h->Reset("ACE");

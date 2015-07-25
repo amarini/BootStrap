@@ -16,6 +16,18 @@ BootStrap::BootStrap(): BootStrapBase() {
 BootStrap::~BootStrap(){
 }
 
+TH1D* BootStrap::UnfoldLikelihood(TH1D*h){
+	// keep track of current settings
+	UnfoldType mytype=unfType_;
+	// set inversion
+	unfType_=kInv;
+	//get result
+	TH1D * r= Unfold(h);
+	//set back current settings
+	unfType_=mytype;
+	// return result
+	return r;
+}
 
 TH1D* BootStrap::Unfold(TH1D* h)
 {
