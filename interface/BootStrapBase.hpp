@@ -16,6 +16,8 @@ using namespace std;
 
 class BootStrapBase
 {
+public:
+	enum ToyType{ kBootstrap = 0 , kToy = 1 , kIterBias=2 };
 private:
 	// number of toys iterations
 	int Ntoys_;
@@ -35,6 +37,7 @@ private:
 	TH1D* fold_;
 
 	int verbose_;
+	ToyType type_;
 protected:
 	// ------------- templates goes in the h file
 	template<class T> void setPointer( T orig,T &target);
@@ -46,9 +49,11 @@ protected:
 
 	void clearBootstrap(){ for( TH1D*ptr : bootstrap_ ) destroyPointer( ptr) ; bootstrap_.clear(); }
 	TH1D* bootStrap();
+	TH1D* directToy();
 
 	TH1D* confidence();
-
+	
+	void Smear(TH1*); // smear using poisson or SumW2
 public:
 	// --- Constructor 
 	BootStrapBase();
@@ -67,7 +72,7 @@ public:
 	void SetSumW2(bool sumw2=true);
 
 	// set and take ownership of the data histogram
-	void SetData( TH1D* data); 
+	virtual void SetData( TH1D* data); 
 	// return and give back ownership
 	TH1D* releaseData(); 
 
@@ -76,6 +81,9 @@ public:
 
 	//--
 	inline void SetSeed(long seed){seed_ = seed;};
+	//--
+	inline void SetToyType(ToyType t){type_=t;};
+
 
 
 	enum ResultType { kStd=0, kMin=1, kMedian=2 , kMean = 3 };

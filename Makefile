@@ -36,8 +36,9 @@ all: libBootStrap.so
 # check if CMSSW is defined
 ifndef CMSSW_BASE
 $(info No CMSSSW !!!!)
-$(info I ll sleep 3s to let you acknowledge it)
-$(shell sleep 3s)
+$(info I ll sleep 3s to let you acknowledge it.)
+$(info To avoid sleeping 'touch NO_CMSSW')
+$(shell [ -f NO_CMSSW ] || sleep 3s)
 else
 $(info CMSSW found: $(CMSSW_BASE) )
 endif

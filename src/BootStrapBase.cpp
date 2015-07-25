@@ -21,6 +21,7 @@ BootStrapBase::BootStrapBase()
 	fold_ = NULL;
 	r_ = NULL;
 	verbose_=1;
+	type_= kBootstrap;
 }
 
 BootStrapBase::BootStrapBase(int ntoys) : BootStrapBase()
@@ -45,6 +46,7 @@ void BootStrapBase::SetNToys(int ntoys)
 
 void BootStrapBase::SetData(TH1D* data)
 {
+	cout<<"[BootStrapBase]::[SetData]::[1]"<<endl;
 	setPointer(data,data_);	
 }
 
@@ -58,6 +60,40 @@ TH1D* BootStrapBase::releaseData(){
 	return releasePointer(data_);	
 }
 
+void BootStrapBase::Smear(TH1*toy)
+{
+	for(int i=0;i<= toy->GetNbinsX() +1 ; ++i)
+	{
+		double c = toy->GetBinContent(i); //  fold_
+		double e = toy->GetBinError(i);
+		if( not SumW2_ and c<=0 ) continue;
+		double c2;
+		if (SumW2_) { c2=r_->Gaus(c,e);}
+		else { c2 = r_->Poisson(c); }
+
+		toy->SetBinContent(i,c2);
+		toy->SetBinError(i,0);
+	
+	}
+	return;
+}
+
+TH1D* BootStrapBase::directToy(){
+	// smear data directly, and unfold the toy
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[directToy]::[DEBUG] checking if pointers are not null "<<endl;
+	if (r_ == NULL) r_ = new TRandom3(seed_);
+	// unfold data
+	if(unf_==NULL) unf_ = Unfold(data_);
+	TH1D * toy1 = (TH1D*)data_ -> Clone("toy_");
+	
+	Smear(toy1);	
+
+	TH1D * toy2 = Unfold(toy1);
+	destroyPointer(toy1);	
+
+	return toy2;
+}
+
 
 TH1D* BootStrapBase::bootStrap(){
 	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] checking if pointers are not null "<<endl;
@@ -69,29 +105,11 @@ TH1D* BootStrapBase::bootStrap(){
 	if(fold_==NULL) fold_ = Fold(unf_);
 	//
 	TH1D * toy = (TH1D*)fold_ -> Clone("toy_");
-	toy->Reset("ACE");
 	// -- smear
 	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] smear fold_="<< fold_<<" != NULL"<<" r"<<r_ << "toy="<<toy<<endl;
-	for(int i=0;i<= toy->GetNbinsX() +1 ; ++i)
-	{
-		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] Doing Bin"<<i<<"/"<<toy->GetNbinsX() +1 <<endl;
-		double c = fold_->GetBinContent(i);
-		double e = fold_->GetBinError(i);
 
-		if( not SumW2_ and c<=0 ) continue;
-
-		double c2;
-
-		if (VERBOSE >0 ) 
-			cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] Calling Poisson/Gauss (Sumw2= "<<SumW2_<<") r="<<r_
-			<<" with param: "<<c<<"; "<<e <<endl;
-
-		if (SumW2_) { c2=r_->Gaus(c,e);}
-		else { c2 = r_->Poisson(c); }
-
-		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] Setting Bin Content of toy"<<toy<<endl;
-		toy->SetBinContent(i,c2);
-	}
+	//
+	Smear(toy);
 	// -- unfold toy
 	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[bootStrap]::[DEBUG] unfold "<<endl;
 	TH1D * toy2 = Unfold(toy);
@@ -118,7 +136,13 @@ void BootStrapBase::run(){
 	{
 		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] running Toy "<< iToy <<endl;
 		TH1D*toy = NULL;
-		toy = bootStrap();	
+		switch (type_) 
+		{
+		case kBootstrap: toy = bootStrap();break;
+		case kToy: toy = directToy();break;
+		case kIterBias: toy = NULL; break; // NOT IMPL YET
+		}
+
 		toy->SetName( Form("toy_%d",iToy) ) ;
 		bootstrap_ . push_back( toy );
 	}
@@ -254,6 +278,7 @@ void BootStrapBase::info(){
 	cout <<"Seed = "<<Ntoys_<<endl;
 	cout <<"Ntoys = "<<Ntoys_<<endl;
 	cout <<"SumW2 = "<<SumW2_<<endl;
+	cout <<"Toy = "<<type_<<" | kBootstrap 0 ; kToys 1 ; kIterBias 2"<<endl;
 	cout <<"------------------------------ "<<endl;
 }
 

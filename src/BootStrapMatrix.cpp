@@ -20,6 +20,8 @@ BootStrapMatrix::BootStrapMatrix(): BootStrapBase() {
 
 	u_resp_bkg_ = NULL;
 	u_resp_smear_ = NULL;
+
+	matrixConstructed_=false;
 }
 
 BootStrapMatrix::~BootStrapMatrix(){
@@ -36,6 +38,8 @@ BootStrapMatrix::~BootStrapMatrix(){
 
 void BootStrapMatrix::SetUMatrix(TH1D* reco, TH1D* truth, TH2D* resp)
 {
+	matrixConstructed_=false;
+
 	destroyPointer( u_reco_  );
 	destroyPointer( u_truth_ );
 	destroyPointer( u_resp_  );
@@ -44,13 +48,12 @@ void BootStrapMatrix::SetUMatrix(TH1D* reco, TH1D* truth, TH2D* resp)
 	setPointer(truth,u_truth_ );
 	setPointer(resp,u_resp_ );
 
-	if ( f_reco_ == NULL and 
-			f_truth_ == NULL and 
-			f_resp_ == NULL )
-	{
-		f_resp_bkg_ = NULL;
-		f_resp_smear_ = NULL;
-	}
+	destroyPointer( u_resp_bkg_ );
+	destroyPointer( u_resp_smear_ );
+	
+	// destroy them in any-case to preserve consistency
+	destroyPointer (f_resp_bkg_ ); 
+	destroyPointer (f_resp_smear_ );
 
 
 }
@@ -64,11 +67,9 @@ void BootStrapMatrix::SetFMatrix(TH1D* reco, TH1D* truth, TH2D* resp)
 	setPointer(truth,f_truth_ );
 	setPointer(resp ,f_resp_ );
 
-	f_resp_bkg_ = NULL;
-	f_resp_smear_ = NULL;
+	destroyPointer( f_resp_bkg_ );
+	destroyPointer( f_resp_smear_ );
 
-	u_resp_bkg_ = NULL;
-	u_resp_smear_ = NULL;
 }
 
 void BootStrapMatrix::ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp){
@@ -174,6 +175,13 @@ void BootStrapMatrix::info(){
 void BootStrapMatrix::ConstructMatrixes(TH1D* data){
 	// Construct the TMatrix used for unfolding with ML
 	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Constructing Matrixes"<<endl;
+
+	//matrix depend on the u_matrixes and on the data
+	//if (matrixConstructed_) return;
+	//matrixConstructed_ = true;
+
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Matrixes not constructed"<<endl;
+
 	ConstructProjections(u_reco_,u_truth_,u_resp_, u_resp_bkg_, u_resp_smear_);
 
 	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Resize"<<endl;
@@ -185,19 +193,55 @@ void BootStrapMatrix::ConstructMatrixes(TH1D* data){
 
 	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Converting"<<endl;
 	//K=getMatrix(  u_resp_ );
-	K=getMatrix(  u_resp_smear_ );
+	//K=getMatrix(  u_resp_smear_ );
+	K=getMatrix(  u_resp_ );// STT
 
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Converting S"<<endl;
+	// scale to truth STT
 	S.ResizeTo( nreco,nreco); // no Overflow
 	for(int i=1 ;i<= nreco ;++i)
 		{
-		S(i-1,i-1) =  TMath::Sqrt(data->GetBinContent(i));// sqrt  SUMW2
+		if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] bin "<< i<<endl;
+		//S(i-1,i-1) =  data->GetBinContent(i);// sqrt  SUMW2
+		if (u_truth_->GetBinContent(i) == 0 ) S(i-1,i-1) = 1;
+		else S(i-1,i-1) = data->GetBinContent(i) / (u_truth_->GetBinContent(i) * u_truth_->GetBinContent(i)) ;//STT -- scale error, this is the covariance matrix
 		}
 
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Converting y"<<endl;
 	y= getVector(data); // y should be vector subtracted
 	for(int i=0;i<y.GetNrows() ;++i) // no overflow
 	{
 		y(i) -= u_resp_bkg_->GetBinContent(i+1);
 	}
+
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Additional matrixes. K."<<endl;
+	Kt.ResizeTo( K.GetNcols(),K.GetNrows() );
+	Kt.Transpose(K);
+	//TMatrixD Kt(K.GetNcols(),K.GetNrows()); Kt.Transpose(K);
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Additional matrixes. A."<<endl;
+	A.ResizeTo( K.GetNcols(), K.GetNcols() ) ;
+	A=Kt*S*K; 
+
+	// make sure A is >0
+		float epsilon=0;
+		while ( A.Determinant() == 0)
+		{
+			for(int iDiag=0;iDiag<A.GetNrows();iDiag++)
+				A(iDiag,iDiag)+=0.0001;
+			epsilon += 0.0001;
+		}
+		if(epsilon >0 ) cout<<"[BootStrapMatrix]::[Unfold]::[INFO] used epsilon="<<epsilon<<" for inversion purpose"<<endl;
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Inverting A"<<endl;
+	A.Invert();
+
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] Additional matrixes. B."<<endl;
+	B.ResizeTo(A.GetNrows(),S.GetNcols());
+	B=A*Kt*S;
+	Bt.ResizeTo( B.GetNcols(),B.GetNrows() );	
+	Bt.Transpose( B );
+	cov.ResizeTo(B.GetNrows(),Bt.GetNcols());
+	cov = (B*S*Bt); // wrt scaled
+
 	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[ConstructMatrixes]::[2] DONE"<<endl;
 }
 
@@ -266,8 +310,7 @@ TH1D* BootStrapMatrix::Unfold(TH1D*data)
 	// implement the pseudo inverse
 
 	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Work with Matrixes"<<endl;
-	TMatrixD Kt(K.GetNcols(),K.GetNrows()); Kt.Transpose(K);
-	TMatrixD A=Kt*S*K; 
+
 
 	if (VERBOSE >1)
 		{
@@ -275,34 +318,30 @@ TH1D* BootStrapMatrix::Unfold(TH1D*data)
 		printMatrix( S,"S");
 		printMatrix( A,"A");
 		}
-	// make sure A is >0
-		float epsilon=0;
-		while ( A.Determinant() == 0)
-		{
-			for(int iDiag=0;iDiag<A.GetNrows();iDiag++)
-				A(iDiag,iDiag)+=0.0001;
-			epsilon += 0.0001;
-		}
-		if(epsilon >0 ) cout<<"[BootStrapMatrix]::[Unfold]::[INFO] used epsilon="<<epsilon<<" for inversion purpose"<<endl;
-	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Inverting A"<<endl;
-	A.Invert();
 	//l=A*Kt*S*y;
-	TMatrixD B=A*Kt*S;
+	//TMatrixD B=A*Kt*S;
 	l=B*y;
+
+	// STT
+	for(int i=0 ;i<l.GetNrows() ;++i)
+	{
+		l(i) *= u_truth_->GetBinContent(i+1);
+	}
 
 	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Compute Analytical covariance matrix"<<endl;
 	// Analytical error propagation	
-	TMatrixD Bt(B.GetNcols(),B.GetNrows()); Bt.Transpose(B);
-	TMatrixD cov; cov.ResizeTo(l.GetNrows(),l.GetNrows());
-	cov = (B*S*Bt);  //covariance matrix after linear transformation
+	//TMatrixD Bt(B.GetNcols(),B.GetNrows()); Bt.Transpose(B);
+	//TMatrixD cov; cov.ResizeTo(l.GetNrows(),l.GetNrows());
+	//cov = (B*S*Bt);  //covariance matrix after linear transformation
 
 	// COPYING INFO
-	TH1D *result = (TH1D*)data->Clone(Form("%s_analyticalunf",data->GetName()));
+	TH1D *result = (TH1D*)u_truth_->Clone(Form("%s_analyticalunf",data->GetName()));
 	result->Reset("ACE");
 	for(int i=1;i<=result->GetNbinsX() ;++i)
 		{
 		result->SetBinContent(i, l(i-1) );
-		result->SetBinError(i, TMath::Sqrt(TMath::Max( double(cov(i-1,i-1)),double(0.))) ) ;
+		double tr = u_truth_->GetBinContent(i); //STT
+		result->SetBinError(i, TMath::Sqrt(TMath::Max( double(cov(i-1,i-1) * tr * tr),double(0.))) ) ; // * truth[i-1,j-1]
 		}
 	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[Unfold]::[2] Done"<<endl;
 

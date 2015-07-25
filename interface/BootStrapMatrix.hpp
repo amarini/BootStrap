@@ -40,10 +40,16 @@ protected: // RooUnfold will need access to these elements
 	
 	void ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp);
 	void ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp, TH1D* &bkg, TH2D* &smear);
+
 private:
+	// matrix used to perform the inversion
 	TMatrixD K,S; //y = K * x + b
+	TMatrixD Kt, A, B, Bt, cov;
 		// solution is (Kt*S*K+eI)^-1 Kt S
 	TVectorD y,b,l;
+
+	// avoid to reconstruct matrixes each time
+	bool matrixConstructed_;
 	void ConstructMatrixes(TH1D*data);
 	TMatrixD getMatrix(TH2*h, bool useOverFlow=false);
 	TVectorD getVector(TH1*h, bool useOverFlow=false);
@@ -52,7 +58,10 @@ public:
 	// constructor 
 	BootStrapMatrix();
 	~BootStrapMatrix();
-	
+
+	// destroy also data_scaled_	
+	// -- void SetData( TH1D* data); 
+
 	// implemetn the Fold
 	virtual TH1D* Unfold(TH1D*);
 	virtual TH1D* Fold(TH1D*);
