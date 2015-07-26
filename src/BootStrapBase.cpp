@@ -1,6 +1,8 @@
 #include "interface/BootStrapBase.hpp"
+#include "interface/stat.hpp"
 #include "TRandom3.h"
 #include <iostream>
+#include <cstdio>
 
 #define VERBOSE 0
 
@@ -22,6 +24,9 @@ BootStrapBase::BootStrapBase()
 	r_ = NULL;
 	verbose_=1;
 	type_= kBootstrap;
+	// iterative bias
+	bias_ = NULL;
+	Nib_ = 5;
 }
 
 BootStrapBase::BootStrapBase(int ntoys) : BootStrapBase()
@@ -35,6 +40,7 @@ BootStrapBase::~BootStrapBase(){
 	destroyPointer(r_);	
 	destroyPointer(unf_);	
 	destroyPointer(fold_);	
+	destroyPointer(bias_);
 	clearBootstrap();
 }
 
@@ -46,7 +52,7 @@ void BootStrapBase::SetNToys(int ntoys)
 
 void BootStrapBase::SetData(TH1D* data)
 {
-	cout<<"[BootStrapBase]::[SetData]::[1]"<<endl;
+	if(VERBOSE>0 )cout<<"[BootStrapBase]::[SetData]::[1]"<<endl;
 	setPointer(data,data_);	
 }
 
@@ -76,6 +82,76 @@ void BootStrapBase::Smear(TH1*toy)
 	
 	}
 	return;
+}
+
+void BootStrapBase::runIterativeBias(){
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[directToy]::[DEBUG] iterative Bias"<<endl;
+
+	destroyPointer(bias_);
+
+	if (r_ == NULL) r_ = new TRandom3(seed_);
+	if(unf_==NULL) unf_ = Unfold(data_);
+	if(fold_==NULL) fold_ = Fold(unf_);
+
+	TH1D* saveUnfold = (TH1D*)unf_->Clone("unfolded_data_for_ib");
+
+	int Ntot= Nib_ * Ntoys_ ;
+	int iRun=1;
+
+	for( int iIB = 0 ;iIB < Nib_ ;++iIB)
+	{
+		// clear the array of toys
+		clearBootstrap();
+		// sampling of the bias
+		for(int iToy = 0;iToy<Ntoys_; ++iToy)
+		{
+			if (verbose_>0 ) {
+				cout<<"\r * "<<iRun++<<"/"<<Ntot;
+				fflush(stdout);
+				}
+			TH1D *toy = bootStrap(); // will apply a smearing
+			bootstrap_ . push_back( toy );
+		}
+
+		// compute bias
+		destroyPointer(bias_);
+		bias_ = (TH1D*)unf_->Clone(Form("bias_%d",iIB));
+		bias_->Reset("ACE");
+
+		for(int iBin=0 ;iBin<= bias_->GetNbinsX()+1 ;++iBin)
+		{
+			 vector<float> values; 	
+			for(int iToy=0;iToy<Ntoys_;++iToy) values.push_back( bootstrap_[iToy]->GetBinContent(iBin) );
+			bias_->SetBinContent(iBin, - STAT::median(values) + unf_->GetBinContent(iBin)); // OR mean ?!?
+		}
+		if(verbose_>1){
+			// display bias
+			cout <<endl<<"--- BIAS iteration "<<iIB<<" ---"<<endl;
+			for(int iBin=0;iBin<bias_->GetNbinsX()+1 ;++iBin)
+				cout << bias_->GetBinContent(iBin)<<" ";
+			cout <<endl<<"--------------------------------"<<endl;
+		}
+
+		// destroy unf_ pointer
+		destroyPointer(unf_);
+		destroyPointer(fold_);
+		// update it
+		unf_ = (TH1D*)saveUnfold->Clone(Form("biasCorrected_%d",iIB));
+		for(int iBin=0;iBin<=bias_->GetNbinsX()+1; ++iBin)
+			{
+			double c = unf_->GetBinContent(iBin);
+			double b = bias_->GetBinContent(iBin);
+			unf_ ->SetBinContent(iBin, c  - b) ;
+			}
+		fold_= Fold(unf_);
+
+	}
+
+	if (verbose_>0 )  cout <<"\r * DONE      "<<endl;
+
+	destroyPointer(saveUnfold);
+
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[directToy]::[DEBUG] DONE "<<endl;
 }
 
 TH1D* BootStrapBase::directToy(){
@@ -132,25 +208,38 @@ void BootStrapBase::run(){
 	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] destroyPointers "<<endl;
 	destroyPointer(unf_);
 	destroyPointer(fold_);
+
+	if (type_ == kIterBias) 
+		{ // the toy generation is a bit more complicate
+		runIterativeBias();
+		return;
+		}
+
+	int iRun=1;
+
 	for(int iToy=0;iToy<Ntoys_;++iToy)
 	{
 		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] running Toy "<< iToy <<endl;
+		if (verbose_>0 ) {
+				cout<<"\r * "<<iRun++<<"/"<<Ntoys_;
+				fflush(stdout);
+				}
 		TH1D*toy = NULL;
 		switch (type_) 
 		{
 		case kBootstrap: toy = bootStrap();break;
 		case kToy: toy = directToy();break;
-		case kIterBias: toy = NULL; break; // NOT IMPL YET
+		case kIterBias: toy = NULL; break; // should not arrive here. It's there to complete the switch over enum.
 		}
 
 		toy->SetName( Form("toy_%d",iToy) ) ;
 		bootstrap_ . push_back( toy );
 	}
+	if (verbose_>0 ) cout <<"\r * DONE                         "<<endl;
 }
 
 
 
-#include "interface/stat.hpp"
 TGraphAsymmErrors* BootStrapBase::result( ResultType type,float Q)
 {
 	if (bootstrap_.size() == size_t(0) )
@@ -279,6 +368,7 @@ void BootStrapBase::info(){
 	cout <<"Ntoys = "<<Ntoys_<<endl;
 	cout <<"SumW2 = "<<SumW2_<<endl;
 	cout <<"Toy = "<<type_<<" | kBootstrap 0 ; kToys 1 ; kIterBias 2"<<endl;
+	if (type_ == kIterBias ) cout<<"N Iter Bias = "<<Nib_<<endl;
 	cout <<"------------------------------ "<<endl;
 }
 

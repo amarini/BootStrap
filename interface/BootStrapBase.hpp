@@ -36,6 +36,9 @@ private:
 	TH1D* unf_;
 	TH1D* fold_;
 
+	// save bias for iterative bias corrections
+	TH1D *bias_;
+
 	int verbose_;
 	ToyType type_;
 protected:
@@ -51,7 +54,8 @@ protected:
 	TH1D* bootStrap();
 	TH1D* directToy();
 
-	TH1D* confidence();
+	int Nib_; // number of iterative Bias corrections
+	void runIterativeBias(); // compute the iterative bias corrections
 	
 	void Smear(TH1*); // smear using poisson or SumW2
 public:
@@ -64,7 +68,6 @@ public:
 	// --- Virtual  members that do the folding / Unfolding
 	virtual TH1D* Unfold(TH1D*) = 0;
 	virtual TH1D* Fold(TH1D*) = 0 ;
-	inline virtual TH1D* UnfoldLikelihood(TH1D*h) { return Unfold(h) ;}
 
 	// member functions
 	// set number of toys
@@ -84,6 +87,8 @@ public:
 	inline void SetSeed(long seed){seed_ = seed;};
 	//--
 	inline void SetToyType(ToyType t){type_=t;};
+	//--
+	inline void SetNiterBias(int n){Nib_ = n;}
 
 
 

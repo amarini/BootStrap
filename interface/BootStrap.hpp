@@ -28,6 +28,7 @@ public:
 
 	//
 	virtual TH1D* Unfold(TH1D*);
+	// in case we need the inversion unfolding
 	virtual TH1D* UnfoldLikelihood(TH1D*h) ;
 
 

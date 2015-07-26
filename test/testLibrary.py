@@ -52,20 +52,17 @@ print "-> construct BootStrap"
 #b = ROOT.BootStrapMatrix()
 b = ROOT.BootStrap()
 b.SetUnfoldType(ROOT.BootStrap.kBayes) ## BootStrap
-b.SetUnfoldType(ROOT.BootStrap.kInv) ## BootStrap
+#b.SetUnfoldType(ROOT.BootStrap.kInv) ## BootStrap
 b.SetRegParam(nReg) ##BootStrap
 
 b.SetNToys(1000)
 b.SetSeed(328956)
 b.SetUMatrix(reco,gen,resp)
-print " >>> Setting Data ? <<<< "
-sys.stdout.flush()
 b.SetData( data2.Clone('bootstrap_data') )
-print " >>> ??????  <<<< "
-sys.stdout.flush()
 
 ## As in RooUnfold for my understanding
 #b.SetToyType(ROOT.BootStrap.kToy)
+b.SetToyType(ROOT.BootStrap.kIterBias)
 
 
 

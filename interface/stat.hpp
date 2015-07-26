@@ -5,6 +5,7 @@
 #include <map>
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TGraphAsymmErrors.h"
 using namespace std;
 
 class STAT{
@@ -57,6 +58,8 @@ public:
 	static void Fill(std::vector<float> &a,std::vector<float> &b, TH2*h);
 	// Get Density Histogram, Gauss with radius R
 	static TH1F* GetDensity(std::vector<float> &v, float R) ;
+
+	static float Chi2(TGraphAsymmErrors *g, TH1 *h, TH2* corr);
 };
 
 #endif

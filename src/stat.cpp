@@ -340,3 +340,30 @@ TH1F *STAT::GetDensity(std::vector<float> &v, float R )
 	}
 	return h;
 }
+
+
+float STAT::Chi2(TGraphAsymmErrors *g, TH1 *h, TH2* corr)
+{
+	vector<float> x;
+	vector<float> y;
+	vector<float> eylow;
+	vector<float> eyhigh;
+	map<pair<int,int>,float> c;
+
+	for(int i=0;i<g->GetN();i++)
+	{
+		y.push_back( g->GetY()[i] );	
+		eylow.push_back( g->GetEYlow()[i] ) ;
+		eyhigh.push_back( g->GetEYhigh()[i] ) ;
+		x.push_back( h->GetBinContent(i+1) );
+	}
+
+	for(int i=0;i<g->GetN();i++)
+	for(int j=0;j<g->GetN();j++)
+	{
+		c[pair<int,int>(i,j)] = corr->GetBinContent(i+1,j+1);
+	}
+
+	//float STAT::Chi2( vector<float> &a, vector<float> &b, vector<float> &ehigh, vector<float> &elow ,map<pair<int,int>,float> &corr)
+	return Chi2(x,y,eyhigh,eylow, c);
+}
