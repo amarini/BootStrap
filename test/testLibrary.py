@@ -75,7 +75,19 @@ b.run()
 g_bootstrap = b.result(ROOT.BootStrap.kMedian,.68)
 g_bootstrap = ROOT.utils.Shift( g_bootstrap, 0.3, True)
 
-g_bs2 = b.result(ROOT.BootStrap.kStd,.68)
+
+b2 = ROOT.BootStrap();
+b2.SetUnfoldType(ROOT.BootStrap.kBayes) ## BootStrap
+b2.SetRegParam(nReg) ##BootStrap
+b2.SetNToys(1000)
+b2.SetSeed(328957)
+b2.SetToyType(ROOT.BootStrap.kBootstrap)
+b2.SetUMatrix(reco.Clone("recob2"),gen.Clone("genb2"),resp.Clone("respb2") )
+b2.SetData( data2.Clone('b2_data') )
+
+b2.run()
+
+g_bs2 = b2.result(ROOT.BootStrap.kMedian,.68)
 g_bs2 = ROOT.utils.Shift( g_bs2, -.3,True)
 
 print "-> plotting"
@@ -153,8 +165,8 @@ l.SetFillStyle(0)
 l.SetBorderSize(0)
 l.AddEntry(gen,"truth","L")
 l.AddEntry(h_bayes,"bayes","LF")
-l.AddEntry(g_bootstrap,"bootstrap","PE")
-l.AddEntry(g_bs2,"bootstrap 2","PE")
+l.AddEntry(g_bootstrap,"Iterative Bias","PE")
+l.AddEntry(g_bs2,"bootstrap ","PE")
 l.AddEntry(reco,"reco","L")
 l.AddEntry(bkg,"bkg","LF")
 l.AddEntry(data,"data","P")

@@ -364,10 +364,18 @@ TH2D* BootStrapBase::correlation(){
 
 void BootStrapBase::info(){
 	cout <<"------- BOOTSTRAP BASE ------- "<<endl;
-	cout <<"Seed = "<<Ntoys_<<endl;
+	cout <<"Seed = "<< seed_<<endl;
 	cout <<"Ntoys = "<<Ntoys_<<endl;
 	cout <<"SumW2 = "<<SumW2_<<endl;
-	cout <<"Toy = "<<type_<<" | kBootstrap 0 ; kToys 1 ; kIterBias 2"<<endl;
+	cout <<"Toy = ";
+		switch(type_)
+		{
+		case kBootstrap: cout<<"kBootstrap"; break;
+		case kToy: cout<<"kToy"; break;
+		case kIterBias: cout<<"kIterBias"; break;
+		}
+		cout<<endl;
+		//<<type_<<" | kBootstrap 0 ; kToys 1 ; kIterBias 2"<<endl;
 	if (type_ == kIterBias ) cout<<"N Iter Bias = "<<Nib_<<endl;
 	cout <<"------------------------------ "<<endl;
 }

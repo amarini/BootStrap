@@ -27,6 +27,10 @@ The following functions are available:
 * SetFMatrix(): if done, set a different matrix for the folding procedure.
 * SetData(): Set Data to be unfolded
 * SetSumW2(): Generate toys accordingly to Poisson or to Gaus. (since unfolding is run w/o errors, gaus will have err=sqrt(content) ).
+* SetToyType(): Set the type of "toy" to generate:
+     * BootStrapBase::kBootstrap (default) use bootstrap technique.
+     * BootStrapBase::kToy direct toy in the smeared space (as RooUnfold, implemented to allow different intervals projections)
+     * BootStrapBase::kIterBias iterative bias corrections.
 * run(  ): Run the boostrap.
 
 * results ( type ): get the result as TGraphAsymmError
