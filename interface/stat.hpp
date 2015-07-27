@@ -59,7 +59,7 @@ public:
 	// Get Density Histogram, Gauss with radius R
 	static TH1F* GetDensity(std::vector<float> &v, float R) ;
 
-	static float Chi2(TGraphAsymmErrors *g, TH1 *h, TH2* corr);
+	static float Chi2(TGraphAsymmErrors *g, TH1 *h, TH2* corr=NULL);
 };
 
 #endif

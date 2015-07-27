@@ -250,7 +250,7 @@ float STAT::min(vector<float> &a)
 float STAT::Chi2( vector<float> &a, vector<float> &b, vector<float> &ehigh, vector<float> &elow ,map<pair<int,int>,float> &corr)
 {
 	bool symm = elow.empty();
-	bool useCorr = corr.empty();
+	bool notUseCorr = corr.empty();
 
 	if (a.size() != b.size()) { cout <<"[STAT]::[Chi2]::[ERROR] a.size != b.size()"<<endl; return -999;}
 	if (b.size() != ehigh.size()) { cout <<"[STAT]::[Chi2]::[ERROR] b.size != e.size()"<<endl; return -999.;}
@@ -267,7 +267,7 @@ float STAT::Chi2( vector<float> &a, vector<float> &b, vector<float> &ehigh, vect
 			}
 		} // else
 	float chi2 =0;	
-	if ( useCorr ) {
+	if ( notUseCorr ) {
 		for( size_t i = 0 ;i< a.size() ;++i)
 			chi2 += (a[i] - b[i]) * (a[i] - b[i]) / (e[i]*e[i]);
 
@@ -284,8 +284,9 @@ float STAT::Chi2( vector<float> &a, vector<float> &b, vector<float> &ehigh, vect
 		for( size_t i = 0 ;i< a.size() ;++i)
 		for( size_t j = 0 ;j< a.size() ;++j)
 			{
+			if (i==j and corr.find(pair<int,int>(i,j)) == corr.end() ) cout<<"[STAT]::[Chi2]::[WARNING] Diagonal element not in the cov matrix"<<endl;
 			if (i==j and corr[pair<int,int>(i,j)] != 1)
-				cout <<"[STAT]::[Chi2]::[WARNING] diagonal element are not one"<<endl;
+				cout <<"[STAT]::[Chi2]::[WARNING] diagonal element are not one but "<<  corr[pair<int,int>(i,j)] <<endl;
 			S(i,j) = corr[ pair<int,int>(i,j) ] * e[i]*e[j];
 			}
 		if (S.Determinant() == 0 ) cout<<"[STAT]::[Chi2]::[ERROR] Covariance matrix is singular"<<endl;
@@ -358,10 +359,13 @@ float STAT::Chi2(TGraphAsymmErrors *g, TH1 *h, TH2* corr)
 		x.push_back( h->GetBinContent(i+1) );
 	}
 
-	for(int i=0;i<g->GetN();i++)
-	for(int j=0;j<g->GetN();j++)
+	if (corr != NULL)
 	{
-		c[pair<int,int>(i,j)] = corr->GetBinContent(i+1,j+1);
+		for(int i=0;i<g->GetN();i++)
+		for(int j=0;j<g->GetN();j++)
+		{
+			c[pair<int,int>(i,j)] = corr->GetBinContent(i+1,j+1);
+		}
 	}
 
 	//float STAT::Chi2( vector<float> &a, vector<float> &b, vector<float> &ehigh, vector<float> &elow ,map<pair<int,int>,float> &corr)
