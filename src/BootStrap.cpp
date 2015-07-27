@@ -9,8 +9,16 @@
 
 #define VERBOSE 0
 
-BootStrap::BootStrap(): BootStrapBase() {
+BootStrap::BootStrap(): BootStrapMatrix() {
+	unfType_ = kInv;
+	regParam_ = 3;
+}
 
+BootStrap::BootStrap( BootStrap &x) : BootStrapMatrix( x )
+{
+	if(VERBOSE>1)cout<<"[BootStrap]::[BootStrap]::[copy constructor]"<<endl;
+	unfType_ = x.unfType_;
+	regParam_ = x.regParam_;
 }
 
 BootStrap::~BootStrap(){

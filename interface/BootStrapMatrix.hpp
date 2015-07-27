@@ -14,7 +14,7 @@
 
 // --- This class implements unfolding with matrix a la RooUnfold.
 // -- inversion with pesudo inverse
-class BootStrapMatrix : virtual public BootStrapBase
+class BootStrapMatrix : public BootStrapBase
 {
 
 protected: // RooUnfold will need access to these elements
@@ -57,6 +57,8 @@ private:
 public:
 	// constructor 
 	BootStrapMatrix();
+	//copy constructor
+	BootStrapMatrix( BootStrapMatrix &x );
 	~BootStrapMatrix();
 
 	// destroy also data_scaled_	

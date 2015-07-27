@@ -11,7 +11,7 @@
 #include "RooUnfoldResponse.h"
 
 // --- this class implements the rooUnfold unfolding
-class BootStrap : virtual public BootStrapMatrix
+class BootStrap :  public BootStrapMatrix
 {
 public:
 	enum UnfoldType	{kBayes=0,kSvd=1,kInv=2};
@@ -23,7 +23,7 @@ private:
 
 public:
 	BootStrap() ;
-	BootStrap(int ntoys) : BootStrapBase(){ SetNToys(ntoys);};
+	BootStrap( BootStrap &);
 	~BootStrap() ;
 
 	//

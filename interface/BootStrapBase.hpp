@@ -61,7 +61,8 @@ protected:
 public:
 	// --- Constructor 
 	BootStrapBase();
-	BootStrapBase(int ntoys);
+	// -- Copy Constructor
+	BootStrapBase(BootStrapBase &);
 	// --- Destructor
 	virtual ~BootStrapBase();
 

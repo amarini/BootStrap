@@ -14,15 +14,10 @@ from library import *
 from threading import Thread
 import time
 
-class bootstrap(Thread):
-	def __init__(self, reco,gen,resp,):
-		self.b=ROOT.BootStrap()	
-		self.b.SetUnfoldType(ROOT.BootStrap.kBayes) ## BootStrap
-		self.b.SetRegParam(nReg) ##BootStrap
-		self.b.SetNToys(1000)
-		self.b.SetSeed( time.time() )
-		self.b.SetUMatrix(reco,gen,resp)
-		self.b.SetData(ConstructData(reco))
+class bsThread(Thread):
+	def __init__(self, b):
+		## use the copy Constructor
+		self.b=ROOT.BootStrap(b)	
 		self.chi2=-999
 	def run(self):
         	self.b.run()
@@ -61,10 +56,15 @@ b.SetVerbose(0);
 h=ROOT.TH1D("chi2","chi2",1000,0,20)
 
 b.info()
+threads=[]
 for i in range(0,Ntest):
 	print "\r Doing test " + str(i)+"/"+str(Ntest),
 	data = ConstructData(reco)
 	b.SetData( data.Clone('bootstrap_data') )
+	#t = bsThread( b )
+	#threads.append(t)
+	#t.start()
+	## here I should have the thread -- and this should be collected later
 	b.run()
 	g_bs = b.result(ROOT.BootStrap.kMedian,.68)
 	corr = b.correlation();

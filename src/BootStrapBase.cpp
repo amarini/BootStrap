@@ -3,6 +3,7 @@
 #include "TRandom3.h"
 #include <iostream>
 #include <cstdio>
+#include <ctime>
 
 #define VERBOSE 0
 
@@ -29,9 +30,22 @@ BootStrapBase::BootStrapBase()
 	Nib_ = 5;
 }
 
-BootStrapBase::BootStrapBase(int ntoys) : BootStrapBase()
+// copy constructor
+BootStrapBase::BootStrapBase( BootStrapBase &x)
 {
-	SetNToys(ntoys);
+	if(VERBOSE>1)cout<<"[BootStrapBase]::[BootStrapBase]::[copy constructor]"<<endl;
+	Ntoys_ = x.Ntoys_;
+	SumW2_ = x.SumW2_;
+	data_ = (x.data_) ? (TH1D*)x.data_->Clone(Form("%s_%u",x.data_ ->GetName(), (unsigned)time(NULL))) : NULL;
+	seed_ = (unsigned)time(NULL);
+	unf_ = NULL;
+	fold_ = NULL;
+	r_ = NULL;
+	verbose_= x.verbose_;
+	type_= x.type_;
+	// iterative bias
+	bias_ = NULL;
+	Nib_ = x.Nib_;
 }
 
 // --- Destructor

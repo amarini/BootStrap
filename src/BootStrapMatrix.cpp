@@ -1,5 +1,6 @@
 #include "interface/BootStrapMatrix.hpp"
 #include <iostream>
+#include <ctime>
 #include "TMath.h"
 
 using namespace std;
@@ -22,6 +23,26 @@ BootStrapMatrix::BootStrapMatrix(): BootStrapBase() {
 	u_resp_smear_ = NULL;
 
 	matrixConstructed_=false;
+}
+
+BootStrapMatrix::BootStrapMatrix( BootStrapMatrix &x) :
+	BootStrapBase( x )
+{
+	if(VERBOSE>1)cout<<"[BootStrapMatrix]::[BootStrapMatrix]::[copy constructor]"<<endl;
+	u_reco_ = (x.u_reco_)? (TH1D*) x.u_reco_->Clone( Form("%s_%u", x.u_reco_->GetName(),(unsigned)time(NULL)) ) : NULL;
+	u_truth_= (x.u_truth_)? (TH1D*) x.u_truth_->Clone( Form("%s_%u",x.u_truth_->GetName(),(unsigned)time(NULL)) ) : NULL;
+	u_resp_ = (x.u_resp_)? (TH2D*) x.u_resp_->Clone( Form("%s_%u", x.u_resp_->GetName(), (unsigned)time(NULL)) ) : NULL;
+
+	f_reco_ = (x.f_reco_)? (TH1D*) x.f_reco_->Clone( Form("%s_%u", x.f_reco_->GetName(),(unsigned)time(NULL)) ) : NULL;
+	f_truth_= (x.f_truth_)? (TH1D*) x.f_truth_->Clone( Form("%s_%u",x.f_truth_->GetName(),(unsigned)time(NULL)) ) : NULL;
+	f_resp_ = (x.f_resp_)? (TH2D*) x.f_resp_->Clone( Form("%s_%u", x.f_resp_->GetName(), (unsigned)time(NULL)) ) : NULL;
+
+	f_resp_bkg_ = NULL;
+	f_resp_smear_ = NULL;
+
+	u_resp_bkg_ = NULL;
+	u_resp_smear_ = NULL;
+
 }
 
 BootStrapMatrix::~BootStrapMatrix(){
