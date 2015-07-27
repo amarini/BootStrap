@@ -136,7 +136,8 @@ void BootStrapBase::runIterativeBias(){
 		{
 			 vector<float> values; 	
 			for(int iToy=0;iToy<Ntoys_;++iToy) values.push_back( bootstrap_[iToy]->GetBinContent(iBin) );
-			bias_->SetBinContent(iBin, - STAT::median(values) + unf_->GetBinContent(iBin)); // OR mean ?!?
+			//bias_->SetBinContent(iBin, - STAT::median(values) + unf_->GetBinContent(iBin)); // OR mean ?!?
+			bias_->SetBinContent(iBin, - STAT::mean(values) + unf_->GetBinContent(iBin)); // OR mean ?!?
 		}
 		if(verbose_>1){
 			// display bias

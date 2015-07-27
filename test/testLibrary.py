@@ -79,7 +79,7 @@ b2 = ROOT.BootStrap(b);
 b2.SetToyType(ROOT.BootStrap.kBootstrap)
 b2.run()
 
-g_bs2 = b2.result(ROOT.BootStrap.kMedian,.68)
+g_bs2 = b2.result(ROOT.BootStrap.kMean,.68)
 g_bs2 = ROOT.utils.Shift( g_bs2, -.3,True)
 
 print "-> plotting"
