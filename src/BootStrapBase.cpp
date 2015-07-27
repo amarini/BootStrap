@@ -2,7 +2,6 @@
 #include "interface/stat.hpp"
 #include "TRandom3.h"
 #include <iostream>
-#include <cstdio>
 #include <ctime>
 
 #define VERBOSE 0
@@ -120,8 +119,7 @@ void BootStrapBase::runIterativeBias(){
 		for(int iToy = 0;iToy<Ntoys_; ++iToy)
 		{
 			if (verbose_>0 ) {
-				cout<<"\r * "<<iRun++<<"/"<<Ntot;
-				fflush(stdout);
+				cout<<"\r * " << iRun++ <<"/" << Ntot << flush;
 				}
 			TH1D *toy = bootStrap(); // will apply a smearing
 			bootstrap_ . push_back( toy );
@@ -236,8 +234,7 @@ void BootStrapBase::run(){
 	{
 		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] running Toy "<< iToy <<endl;
 		if (verbose_>0 ) {
-				cout<<"\r * "<<iRun++<<"/"<<Ntoys_;
-				fflush(stdout);
+				cout << "\r * " << iRun++ << "/" << Ntoys_ << flush;
 				}
 		TH1D*toy = NULL;
 		switch (type_) 
