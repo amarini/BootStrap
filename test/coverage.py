@@ -55,7 +55,7 @@ reco = ConstructReco(bkg,resp)
 nReg = 5
 b = ROOT.BootStrap()
 b.SetUnfoldType(ROOT.BootStrap.kBayes) ## BootStrap
-b.SetToyType(ROOT.BootStrap.kIterBias) ## ToyType
+#b.SetToyType(ROOT.BootStrap.kIterBias) ## ToyType
 b.SetRegParam(nReg) ##BootStrap
 b.SetNToys(1000)
 b.SetSeed(328956)
@@ -114,8 +114,19 @@ for i in range(0,Ntest):
 	corr.Delete()
 	g_bs.Delete()
 	data.Delete()
-	h1.Fill(chi2);
-	h1_u.Fill(chi2_u)
+	
+	lastBin = h1.GetNbinsX()
+	lastCenter = h1.GetBinCenter( lastBin )
+	lastEdge = h1.GetBinLowEdge( lastBin ) ##  avoid last bin that I will fill with overflow
+
+	## FILL WITH OVERFLOW
+	if chi2 < lastCenter: h1.Fill(chi2)
+	else: h1.Fill(lastCenter)
+
+	if chi2_u < lastCenter: h1_u.Fill(chi2_u)
+	else : h1_u.Fill( lastCenter) 
+	
+	### 
 	h2.Fill(ROOT.TMath.Prob(chi2,ndf )); ## NDF chi2 -> uniform p-value
 	h2_u.Fill(ROOT.TMath.Prob(chi2_u,ndf )); ## NDF chi2 -> uniform p-value
 
@@ -172,6 +183,18 @@ p1.SetRightMargin(0.05)
 h1.Draw("HIST")
 h1_u.Draw("HIST SAME")
 
+### Chi Square distributions
+f1=ROOT.TF1("chi2dist1","%.2f*TMath::GammaDist(x, %d/2., 0, 2)"%(h1.Integral(1,ndf -1),ndf) ,0,50)
+f1.Draw("L SAME")
+
+f2=ROOT.TF1("chi2dist2","[0]*TMath::GammaDist(x, [1]/2., 0, 2)",0,45)
+f2.SetParameter(0, h1.Integral(1,ndf -1))
+f2.SetParameter(1, ndf)
+h1.Fit( f2, "QNRL")
+f2.SetLineColor(ROOT.kBlue)
+f2.SetLineStyle(ROOT.kDashed)
+f2.Draw("L SAME")
+
 p2= c.cd(2)
 p2.SetTopMargin(0.05)
 p2.SetRightMargin(0.05)
@@ -187,6 +210,8 @@ l.AddEntry(h1  ,"cov. matrix")
 l.AddEntry(h1_u,"diagonal only")
 l.AddEntry(h3  ,"diagonal only (ndf/2)")
 l.AddEntry(h3_u,"diagonal only (ndf/2)")
+l.AddEntry(f1,"#chi^{2} ndf")
+l.AddEntry(f2,"#chi^{2} ndf = %.1f"%f2.GetParameter(1))
 l.Draw()
 
 print " --------- COVERAGE ------------"
@@ -194,7 +219,8 @@ print " Uncorrelated:", nIn_u, "/",nTot_u, "=", float(nIn_u) / nTot_u
 print "   Correlated:", nIn, "/",nTot, "=", float(nIn) / nTot
 
 raw_input("Looks ok ? ")
-
+c.SaveAs("plot/coverage_bs.pdf")
+c.SaveAs("plot/coverage_bs.root")
 
 
 ##
