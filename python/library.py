@@ -35,6 +35,7 @@ def ConstructTruth(type=1):
 			gen . SetBinContent(iBin, NSig*ROOT.TMath.Power(iBin * 20. / N,-5) ) 
 		elif type == 2:
 			gen . SetBinContent(iBin, NSig*ROOT.TMath.Power(iBin * 20./ N,-4.9) + NSig/10000. *ROOT.TMath.Power(iBin,-3) ) 
+		gen . SetBinError(iBin,  gen.GetBinContent(iBin) *0.01) 
 	return gen
 
 ## construct probability smears
@@ -65,6 +66,7 @@ def ConstructResponse(gen,smear):
 		iBin= i+1
 		jBin= j+1
 		resp.SetBinContent(iBin,jBin, smear.GetBinContent(iBin,jBin) * gen.GetBinContent(jBin) ) 
+		resp . SetBinError(iBin,jBin,  resp.GetBinContent(iBin,jBin) *0.01) 
 	return resp
 
 ## construct reco
@@ -77,7 +79,8 @@ def ConstructReco(bkg,resp):
 		iBin= i+1
 		jBin= j+1
 		S += resp.GetBinContent(iBin,jBin)			
-	   reco.SetBinContent(iBin, S + bkg.GetBinContent(iBin) ) 
+	   reco . SetBinContent(iBin, S + bkg.GetBinContent(iBin) ) 
+	   reco . SetBinError(iBin,  reco.GetBinContent(iBin) *0.01) 
 	return reco
 
 def ConstructData(reco):
@@ -88,4 +91,5 @@ def ConstructData(reco):
 		c= r.Poisson(data.GetBinContent(iBin) )
 		if c<0 : print "* ERROR: negative poisson!"
 		data.SetBinContent(iBin, c ) 
+	   	data . SetBinError(iBin,  ROOT.TMath.Sqrt( c )) 
 	return data

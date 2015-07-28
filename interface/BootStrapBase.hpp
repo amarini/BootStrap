@@ -17,24 +17,15 @@ using namespace std;
 class BootStrapBase
 {
 public:
-	enum ToyType{ kBootstrap = 0 , kToy = 1 , kIterBias=2 };
+	enum ToyType{ kBootstrap = 0 , kToy = 1 , kIterBias=2 , kMatrix=3};
+	// kMatrix will smear the matrix
 private:
 	// number of toys iterations
 	int Ntoys_;
-	// use gauss vs Poisson distributions
-	bool SumW2_;
-	// Data
-	TH1D * data_;
 	// BootStrap-ed distributions
 	vector<TH1D*> bootstrap_;
 	//
-	TRandom *r_;
-	long seed_;
 	
-	//  folded and unfolded histograms 
-	//  saved for saving time
-	TH1D* unf_;
-	TH1D* fold_;
 
 	// save bias for iterative bias corrections
 	TH1D *bias_;
@@ -49,15 +40,36 @@ protected:
 
 	template<class T> void destroyPointer(T &ptr);
 
+	template<class T> inline void swapPointers( T* &x, T* &y ){ T* z=x; x=y; y=z ; }
+
 
 	void clearBootstrap(){ for( TH1D*ptr : bootstrap_ ) destroyPointer( ptr) ; bootstrap_.clear(); }
 	TH1D* bootStrap();
 	TH1D* directToy();
 
+	virtual TH1D* matrixSmear()=0; // from the smearing of the matrix
+
+	// random number generation	
+	TRandom *r_;
+	long seed_;
+
+	// Data
+	TH1D * data_;
+
+	//  folded and unfolded histograms 
+	//  saved for saving time
+	TH1D* unf_;
+	TH1D* fold_;
+
+	// use gauss vs Poisson distributions
+	bool SumW2_;
+
 	int Nib_; // number of iterative Bias corrections
 	void runIterativeBias(); // compute the iterative bias corrections
 	
 	void Smear(TH1*); // smear using poisson or SumW2
+	void Smear(TH2*); // smear using poisson or SumW2
+
 public:
 	// --- Constructor 
 	BootStrapBase();
@@ -93,10 +105,12 @@ public:
 
 
 
-	enum ResultType { kStd=0, kMin=1, kMedian=2 , kMean = 3 };
+	enum ResultType { kStd=0, kMin=1, kMedian=2 , kMean = 3, kRms=4 };
 	// get results -- these are recomputed each time
 	// type =kStd : 
 	// 	mean points are the unfold ones. errors are asymetric in order to cover Q/2 each.
+	// type = kRms:
+	// 	mean point are the unfold ones. errors is the rms. symmetric
 	// type =kMin :
 	// 	mean points are the unfold ones. errors are the minimum interval to cover Q
 	// type = kMedian :

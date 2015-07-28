@@ -81,6 +81,7 @@ TH1D* BootStrapBase::releaseData(){
 
 void BootStrapBase::Smear(TH1*toy)
 {
+	if (r_ == NULL) r_ = new TRandom3(seed_);
 	for(int i=0;i<= toy->GetNbinsX() +1 ; ++i)
 	{
 		double c = toy->GetBinContent(i); //  fold_
@@ -92,6 +93,26 @@ void BootStrapBase::Smear(TH1*toy)
 
 		toy->SetBinContent(i,c2);
 		toy->SetBinError(i,0);
+	
+	}
+	return;
+}
+
+void BootStrapBase::Smear(TH2*toy)
+{
+	if (r_ == NULL) r_ = new TRandom3(seed_);
+	for(int j=0;j<= toy->GetNbinsY() +1 ; ++j)
+	for(int i=0;i<= toy->GetNbinsX() +1 ; ++i)
+	{
+		double c = toy->GetBinContent(i,j); //  fold_
+		double e = toy->GetBinError(i,j);
+		if( not SumW2_ and c<=0 ) continue;
+		double c2;
+		if (SumW2_) { c2=r_->Gaus(c,e);}
+		else { c2 = r_->Poisson(c); }
+
+		toy->SetBinContent(i,j,c2);
+		toy->SetBinError(i,j,0);
 	
 	}
 	return;
@@ -242,6 +263,7 @@ void BootStrapBase::run(){
 		case kBootstrap: toy = bootStrap();break;
 		case kToy: toy = directToy();break;
 		case kIterBias: toy = NULL; break; // should not arrive here. It's there to complete the switch over enum.
+		case kMatrix: toy = matrixSmear(); break;
 		}
 
 		toy->SetName( Form("toy_%d",iToy) ) ;
@@ -271,6 +293,9 @@ TGraphAsymmErrors* BootStrapBase::result( ResultType type,float Q)
 		case kStd:
 			R->SetName(Form("bootstrap_Ntoys%d_kStd",Ntoys_));
 			break;
+		case kRms:
+			R->SetName(Form("bootstrap_Ntoys%d_kRms",Ntoys_));
+			break;
 		case kMin:
 			R->SetName(Form("bootstrap_Ntoys%d_kMin",Ntoys_));
 			break;
@@ -298,6 +323,14 @@ TGraphAsymmErrors* BootStrapBase::result( ResultType type,float Q)
 			{
 			mean=unf_->GetBinContent(iBin);
 			STAT::ConfidenceIntervalAround(values, mean, err,Q);
+			break;
+			}
+		case kRms:
+			{
+			mean=unf_->GetBinContent(iBin);
+			float rms = STAT::rms(values);
+			err.first =  mean-rms ;
+			err.second = mean+rms;
 			break;
 			}
 		case kMin:
@@ -385,6 +418,7 @@ void BootStrapBase::info(){
 		case kBootstrap: cout<<"kBootstrap"; break;
 		case kToy: cout<<"kToy"; break;
 		case kIterBias: cout<<"kIterBias"; break;
+		case kMatrix: cout<<"kMatrix"; break;
 		}
 		cout<<endl;
 		//<<type_<<" | kBootstrap 0 ; kToys 1 ; kIterBias 2"<<endl;
@@ -428,3 +462,4 @@ TH2F* BootStrapBase::GetToyDistribution(int bin1,int bin2)
 	STAT::Fill(valuesX,valuesY,h);
 	return h;
 }
+

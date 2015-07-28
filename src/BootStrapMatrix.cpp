@@ -112,6 +112,11 @@ void BootStrapMatrix::ConstructProjections(TH1D*reco,TH1D*truth,TH2D*resp, TH1D*
 			float r = reco->GetBinContent(i);
 			float genreco = bkg->GetBinContent(i);
 			bkg -> SetBinContent(i, r - genreco);
+			// construct back the original distribution
+			// error are the difference
+			float re = reco->GetBinError(i);
+			float gre = bkg->GetBinError(i);
+			bkg -> SetBinError(i, TMath::Sqrt(re*re - gre * gre ));
 		}
 	}
 
@@ -369,4 +374,142 @@ TH1D* BootStrapMatrix::Unfold(TH1D*data)
 	return result;
 }
 
+//#define VERBOSE 2
+TH1D* BootStrapMatrix::matrixSmear(){
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Start"<<endl;
+
+	static int matrixWarning = 0;
+	if (not SumW2_ and matrixWarning == 0 )
+		{
+		++matrixWarning ;
+		cout<<"[BootStrapMatrix]::[matrixSmear]::[WARNING] SumW2 is not active.... check it ! "<<endl;
+		}
+
+	// Preliminary check
+	// unfold data -- will used in some results, like median, rms...
+	if(unf_==NULL) unf_ = Unfold(data_);
+	// no need of folded distribution
+
+
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Construct projections"<<endl;
+	// Produce a Toy with the smearing from the matrix
+	ConstructProjections(u_reco_,u_truth_,u_resp_, u_resp_bkg_, u_resp_smear_ ) ;
+
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Construct extra projections"<<u_resp_ << "|"<<u_resp_bkg_<<endl;
+	// clone matrix at this stage
+	TH1D * _reco_  = NULL ;
+	TH1D * _truth_ = NULL ;
+
+	TH2D * _resp_  = (TH2D*)u_resp_ -> Clone(Form("%s_smearmatrix",u_resp_->GetName() ));
+	TH1D * _bkg_   = (TH1D*)u_resp_bkg_ ->Clone(Form("%s_smearmatrix",u_resp_bkg_->GetName()) ); 
+
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Construct extra projections 2"<<endl;
+	TH1D * _gen_notreco_ = u_resp_ -> ProjectionY();
+
+		for(int i=0;i<=_gen_notreco_->GetNbinsX()+1 ;++i)
+		{
+			if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] GenNotReco bin"<<i<<endl;
+			float g = u_truth_->GetBinContent(i);
+			float genreco = _gen_notreco_->GetBinContent(i);
+			_gen_notreco_ -> SetBinContent(i, g - genreco);
+			// construct back the original distribution
+			// error are the difference
+			float ge = u_truth_->GetBinError(i);
+			float gre = _gen_notreco_->GetBinError(i);
+			_gen_notreco_ -> SetBinError(i, TMath::Sqrt(ge*ge -gre * gre));
+		}
+
+	
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Compute smallest error"<<endl;
+	// smear the matrixes, start with background. 
+	// find the smallest error, 
+	bool isBkgEmpty = true;
+	bool isEffEmpty = true;
+	float smallestError= 1;
+	for( int i=0;i<= _bkg_->GetNbinsX() +1 ; ++i)
+		if (_bkg_->GetBinContent(i) > 1.e-10 ) {
+			isBkgEmpty = false;
+			float e = _bkg_->GetBinError(i);
+			if (e<smallestError ) smallestError = e;
+		}
+	for( int i=0;i<= _gen_notreco_->GetNbinsX() +1 ; ++i)
+		if (_gen_notreco_->GetBinContent(i) > 1.e-10 ) {
+			isEffEmpty= false;
+			float e = _gen_notreco_->GetBinError(i);
+			if (e<smallestError ) smallestError = e;
+		}
+	for(int i=0;i<= _resp_->GetNbinsX() +1 ; i++)
+	for(int j=0;j<= _resp_->GetNbinsY() +1 ; j++)
+	{
+		if (_resp_->GetBinContent(i,j) > 1.e-10 ) {
+			float e = _resp_->GetBinError(i,j);
+			if (e<smallestError ) smallestError = e;
+
+		}
+			
+	}
+
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Set smallest error"<<smallestError<<endl;
+	// and set 0 bins to that error, may lead to an over estimation, as sumw2 set to 1 error with content 0.
+	for( int i=0;i<= _bkg_->GetNbinsX() +1 and isBkgEmpty; ++i)
+		{
+		if (_bkg_->GetBinContent(i) <= 1.e-10 ) 
+			_bkg_->SetBinError(i,smallestError);
+		}
+
+	for( int i=0;i<= _gen_notreco_->GetNbinsX() +1 ; ++i)
+		if (_gen_notreco_->GetBinContent(i) < 1.e-10 ) {
+			_gen_notreco_->SetBinError(i,smallestError);
+		}
+
+	for(int i=0;i<= _resp_->GetNbinsX() +1 ; i++)
+	for(int j=0;j<= _resp_->GetNbinsY() +1 ; j++)
+	{
+		if (_resp_->GetBinContent(i,j) <= 1.e-10 ) {
+			_resp_->SetBinError(i,j,smallestError);
+
+		}
+			
+	}
+
+
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Smear "<<_bkg_<<"|"<<_gen_notreco_ <<"|"<<_resp_<<endl;
+	if (not isBkgEmpty) Smear( _bkg_ );
+	if (not isEffEmpty) Smear( _gen_notreco_ );
+
+	Smear( _resp_ ) ;
+	
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Compute projections"<<endl;
+
+	_truth_= _resp_ -> ProjectionY(); _truth_->SetName( Form("%s_smearmatrix", u_truth_->GetName() ));
+	_truth_->Add(_gen_notreco_);
+
+	_reco_=_resp_ -> ProjectionX() ; _reco_->SetName( Form("%s_smearmatrix", u_reco_->GetName() ));
+	_reco_->Add( _bkg_ ) ;
+
+
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Swap Pointers"<<endl;
+	// swap pointers, unfold the data
+	swapPointers( _reco_, u_reco_ );	
+	swapPointers( _truth_, u_truth_ );	
+	swapPointers( _resp_, u_resp_ );	
+
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] Unfold:"<<u_reco_<<"|"<<u_truth_<<"|"<<u_resp_<<"|"<<data_<<endl;
+	TH1D* toy = Unfold( data_ );
+	// get back the unsmeared matrixes
+	//
+	swapPointers( _reco_, u_reco_ );	
+	swapPointers( _truth_, u_truth_ );	
+	swapPointers( _resp_, u_resp_ );	
+
+	destroyPointer ( _reco_);
+	destroyPointer ( _truth_);
+	destroyPointer ( _resp_);
+	// additional pointers
+	destroyPointer ( _bkg_);
+	destroyPointer ( _gen_notreco_);
+	
+	if (VERBOSE>1) cout <<"[BootStrapMatrix]::[matrixSmear]::[2] DONE"<<endl;
+	return toy;
+}
 

@@ -35,6 +35,7 @@ The following functions are available:
 
 * results ( type ): get the result as TGraphAsymmError
      * BootStrapBase::kStd: mean points are the unfold ones. errors are asymetric in order to cover Q/2 each.
+     * kRms: mean points are the unfold ones. errors is the rms.
      * kMin: mean points are the unfold ones. errors are the minimum interval to cover Q
      * kMedian: mean points are the median of the toys and errors covers the smallest possible interval
      * kMean: mean  points are the mean of toys and errors covers the smallest possible interval

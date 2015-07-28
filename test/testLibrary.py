@@ -62,9 +62,11 @@ b.SetData( data2.Clone('bootstrap_data') )
 
 ## As in RooUnfold for my understanding
 #b.SetToyType(ROOT.BootStrap.kToy)
-b.SetToyType(ROOT.BootStrap.kIterBias)
+#b.SetToyType(ROOT.BootStrap.kIterBias)
 
 
+#b.SetSumW2();
+#b.SetToyType(ROOT.BootStrap.kMatrix)
 
 print "-> running BootStrap"
 ## ## kStd/kMin/kMedian/kMean
