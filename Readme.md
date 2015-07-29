@@ -31,6 +31,7 @@ The following functions are available:
      * BootStrapBase::kBootstrap (default) use bootstrap technique.
      * BootStrapBase::kToy direct toy in the smeared space (as RooUnfold, implemented to allow different intervals projections)
      * BootStrapBase::kIterBias iterative bias corrections.
+     * BootStrapBase::kMatrix statistical uncertainty on the matrix ( need to set sumw2 ) .
 * run(  ): Run the boostrap.
 
 * results ( type ): get the result as TGraphAsymmError
