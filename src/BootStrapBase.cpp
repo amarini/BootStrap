@@ -329,8 +329,8 @@ TGraphAsymmErrors* BootStrapBase::result( ResultType type,float Q)
 			{
 			mean=unf_->GetBinContent(iBin);
 			float rms = STAT::rms(values);
-			err.first =  mean-rms ;
-			err.second = mean+rms;
+			err.first =  mean - (rms/2.0) ;
+			err.second = mean + (rms/2.0) ;
 			break;
 			}
 		case kMin:

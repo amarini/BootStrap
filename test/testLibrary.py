@@ -17,10 +17,10 @@ loadBootStrap()
 print "-> Creating Matrixes"
 
 ####################
-
+#NBkg *= 10
 bkg  = ConstructBackground()
 gen  = ConstructTruth()
-smear= ConstructSmear(2) ## 1 ~ diagonal, 2 ~ off-diagonal
+smear= ConstructSmear(2) ## 1 ~ diagonal, 2 ~ off-diagonal, 3 low eff
 
 resp = ConstructResponse(gen,smear)
 reco = ConstructReco(bkg,resp)
@@ -41,8 +41,10 @@ print "\t\tBayes, nReg=",nReg
 
 R = ROOT.RooUnfoldResponse(reco,gen,resp)
 u = ROOT.RooUnfoldBayes(R,data2,nReg)
+#u = ROOT.RooUnfoldSvd(R,data2,nReg)
 u.SetVerbose(-1)
 u.SetNToys(1000)
+#u.IncludeSystematics(2)  ### only MATRIX
 h_bayes = u.Hreco(ROOT.RooUnfold.kCovToy)
 
 #uInv = ROOT.RooUnfoldInvert(R,reco)
@@ -62,17 +64,18 @@ b.SetData( data2.Clone('bootstrap_data') )
 
 ## As in RooUnfold for my understanding
 #b.SetToyType(ROOT.BootStrap.kToy)
-#b.SetToyType(ROOT.BootStrap.kIterBias)
+b.SetToyType(ROOT.BootStrap.kIterBias)
 
 
-#b.SetSumW2();
-#b.SetToyType(ROOT.BootStrap.kMatrix)
+#b.SetSumW2(); ## MATRIX
+#b.SetToyType(ROOT.BootStrap.kMatrix) ## MATRIX
 
 print "-> running BootStrap"
 ## ## kStd/kMin/kMedian/kMean
 
 b.run()
-g_bootstrap = b.result(ROOT.BootStrap.kMedian,.68)
+#g_bootstrap = b.result(ROOT.BootStrap.kMedian,.68)
+g_bootstrap = b.result(ROOT.BootStrap.kMin) ## MATRIX
 g_bootstrap = ROOT.utils.Shift( g_bootstrap, 0.3, True)
 
 
@@ -216,14 +219,17 @@ c2 = ROOT.TCanvas("c2","c2",600,10,800,600)
 c2.Divide(2)
 c2.cd(1)
 
-cov = u.Ereco(ROOT.RooUnfold.kCovToy)
+cov = u.Ereco(ROOT.RooUnfold.kCovToy) 
 err = u.ErecoV(ROOT.RooUnfold.kCovToy)
 
 corr_bayes=ROOT.TH2D("corr_bayes","corr_bayes",N,0-.5,N-.5,N,-.5,N-.5)
 
 for i in range(0, N ):
    for j in range(0, N):
-	corr_bayes.SetBinContent(i+1,j+1, cov(i,j) / (err(i)*err(j) ) )
+	if err(i)*err(j) >0:
+		corr_bayes.SetBinContent(i+1,j+1, cov(i,j) / (err(i)*err(j) ) )
+	else:
+		corr_bayes.SetBinContent(i+1,j+1, 0 ) 
 
 ltx=ROOT.TLatex()
 ltx.SetNDC()

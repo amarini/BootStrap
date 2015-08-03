@@ -55,6 +55,9 @@ def ConstructSmear(type=1):
 			if (abs(iBin-jBin) == 1):smear.SetBinContent(iBin,jBin, 0.15) 
 			if (abs(iBin-jBin) == 2):smear.SetBinContent(iBin,jBin, 0.08) 
 			if (abs(iBin-jBin) == 3):smear.SetBinContent(iBin,jBin, 0.02) 
+		if type==3: ## pretty normal, low eff
+			if (iBin == jBin):smear.SetBinContent(iBin,jBin, 0.7*.1) 
+			if (abs(iBin-jBin) == 1):smear.SetBinContent(iBin,jBin, 0.01*.1) 
 	return smear
 
 ## construct response matrix
