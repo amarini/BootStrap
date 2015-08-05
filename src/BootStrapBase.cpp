@@ -27,6 +27,7 @@ BootStrapBase::BootStrapBase()
 	// iterative bias
 	bias_ = NULL;
 	Nib_ = 5;
+	Ntoysib_ = 0;
 }
 
 // copy constructor
@@ -45,6 +46,7 @@ BootStrapBase::BootStrapBase( BootStrapBase &x)
 	// iterative bias
 	bias_ = NULL;
 	Nib_ = x.Nib_;
+	Ntoysib_ = x.Ntoysib_;
 }
 
 // --- Destructor
@@ -55,6 +57,12 @@ BootStrapBase::~BootStrapBase(){
 	destroyPointer(fold_);	
 	destroyPointer(bias_);
 	clearBootstrap();
+	clearIbtoys();
+}
+
+void BootStrapBase::clearIbtoys(){
+	for( TH1D*ptr : ibtoys_ ) destroyPointer( ptr) ; 
+	ibtoys_.clear(); 
 }
 
 // ---
@@ -118,47 +126,73 @@ void BootStrapBase::Smear(TH2*toy)
 	return;
 }
 
-void BootStrapBase::runIterativeBias(){
-	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[directToy]::[DEBUG] iterative Bias"<<endl;
+TH1D* BootStrapBase::iterativeBias(bool toy){
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[iterativeBias]::[DEBUG] iterative Bias"<<endl;
 
 	destroyPointer(bias_);
+	TH1D *data;
+
+	// toys are smeared
+	if (toy ) 
+		{
+		if( unf_ == NULL ) { 
+				iterativeBias(0);
+				destroyPointer(fold_);
+				}
+
+		data = (TH1D*)data_->Clone( Form("%s_ib_toy",data_->GetName() ));
+		Smear(data);
+		}
+	else 	{
+		if( unf_ == NULL ) {
+				unf_ = Unfold(data_);
+				destroyPointer(fold_);
+				}
+		data = (TH1D*)data_->Clone( Form("%s_ib",data_->GetName() ));
+		}
+	TH1D * saveUnfold = (TH1D*)unf_->Clone("unfolded_data_for_ib");
+
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[iterativeBias]::[DEBUG] data are"<<data_<<" " <<data_->GetName()<<endl;
 
 	if (r_ == NULL) r_ = new TRandom3(seed_);
-	if(unf_==NULL) unf_ = Unfold(data_);
 	if(fold_==NULL) fold_ = Fold(unf_);
 
-	TH1D* saveUnfold = (TH1D*)unf_->Clone("unfolded_data_for_ib");
+	if (Ntoysib_<=0 ) Ntoysib_ = Ntoys_ / 10; // I want only the mean point out of this toys, boost t
 
-	int Ntot= Nib_ * Ntoys_ ;
+	int Ntot= Nib_ * Ntoysib_ ;
 	int iRun=1;
 
+	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[iterativeBias]::[DEBUG] Running IB iterations"<<endl;
 	for( int iIB = 0 ;iIB < Nib_ ;++iIB)
 	{
+		if (VERBOSE >1 ) cout<<"[BootStrapBase]::[iterativeBias]::[DEBUG] IB "<<iIB<<endl;
 		// clear the array of toys
-		clearBootstrap();
+		clearIbtoys();
 		// sampling of the bias
-		for(int iToy = 0;iToy<Ntoys_; ++iToy)
+		for(int iToy = 0;iToy<Ntoysib_; ++iToy)
 		{
-			if (verbose_>0 ) {
+			if (verbose_>0 or VERBOSE >0) {
 				cout<<"\r * " << iRun++ <<"/" << Ntot << flush;
 				}
 			TH1D *toy = bootStrap(); // will apply a smearing
-			bootstrap_ . push_back( toy );
+			ibtoys_ . push_back( toy );
 		}
 
 		// compute bias
 		destroyPointer(bias_);
 		bias_ = (TH1D*)unf_->Clone(Form("bias_%d",iIB));
 		bias_->Reset("ACE");
+		
+		if (VERBOSE >1 ) cout<<"[BootStrapBase]::[iterativeBias]::[DEBUG] Compute Bias "<<iIB<<endl;
 
 		for(int iBin=0 ;iBin<= bias_->GetNbinsX()+1 ;++iBin)
 		{
 			 vector<float> values; 	
-			for(int iToy=0;iToy<Ntoys_;++iToy) values.push_back( bootstrap_[iToy]->GetBinContent(iBin) );
+			for(int iToy=0;iToy<Ntoysib_;++iToy) values.push_back( ibtoys_[iToy]->GetBinContent(iBin) );
 			bias_->SetBinContent(iBin, - STAT::median(values) + unf_->GetBinContent(iBin)); // OR mean ?!?
 			//bias_->SetBinContent(iBin, - STAT::mean(values) + unf_->GetBinContent(iBin)); // OR mean ?!?
 		}
-		if(verbose_>1){
+		if(verbose_>1 or VERBOSE >0){
 			// display bias
 			cout <<endl<<"--- BIAS iteration "<<iIB<<" ---"<<endl;
 			for(int iBin=0;iBin<bias_->GetNbinsX()+1 ;++iBin)
@@ -170,6 +204,7 @@ void BootStrapBase::runIterativeBias(){
 		destroyPointer(unf_);
 		destroyPointer(fold_);
 		// update it
+		if (VERBOSE >1 ) cout<<"[BootStrapBase]::[iterativeBias]::[DEBUG] Update unfolding "<<endl;
 		unf_ = (TH1D*)saveUnfold->Clone(Form("biasCorrected_%d",iIB));
 		for(int iBin=0;iBin<=bias_->GetNbinsX()+1; ++iBin)
 			{
@@ -180,12 +215,35 @@ void BootStrapBase::runIterativeBias(){
 		fold_= Fold(unf_);
 
 	}
+	
+	if (VERBOSE >1 ) cout<<"[BootStrapBase]::[iterativeBias]::[DEBUG] Compute Estimate "<<endl;
+	// construct the estimate from the ibtoys
+	TH1D *res= (TH1D*) unf_->Clone( Form("%s_ibres",data->GetName()) ) ;
+	res->Reset("ACE");
+	for(int iBin=0;iBin<=unf_->GetNbinsX()+1 ;++iBin)
+	{
+		vector<float> values; 	
+		for(int iToy=0;iToy<Ntoysib_;++iToy) values.push_back( ibtoys_[iToy]->GetBinContent(iBin) );
+		res->SetBinContent(iBin, STAT::median(values) ); //  OR mean ?!?
+	}
 
 	if (verbose_>0 )  cout <<"\r * DONE      "<<endl;
 
+	if (toy)
+		{
+		swapPointers(saveUnfold,unf_ ); // put back the old result in unf_ , local data will be destroyed
+		}
+	else 
+		{
+		destroyPointer(unf_);
+		swapPointers(res,unf_ ) ; // put result in unfolding and return null
+		}
+
 	destroyPointer(saveUnfold);
+	destroyPointer(data);
 
 	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[directToy]::[DEBUG] DONE "<<endl;
+	return res;
 }
 
 TH1D* BootStrapBase::directToy(){
@@ -245,8 +303,7 @@ void BootStrapBase::run(){
 
 	if (type_ == kIterBias) 
 		{ // the toy generation is a bit more complicate
-		runIterativeBias();
-		return;
+		iterativeBias(0); // return NULL, and put result in unf_
 		}
 
 	int iRun=1;
@@ -262,7 +319,9 @@ void BootStrapBase::run(){
 		{
 		case kBootstrap: toy = bootStrap();break;
 		case kToy: toy = directToy();break;
-		case kIterBias: toy = NULL; break; // should not arrive here. It's there to complete the switch over enum.
+		case kIterBias: toy = iterativeBias(1); 
+				if (verbose_ >0 ) cout <<endl;
+				break; // should not arrive here. It's there to complete the switch over enum.
 		case kMatrix: toy = matrixSmear(); break;
 		}
 

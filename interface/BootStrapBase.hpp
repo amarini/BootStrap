@@ -65,7 +65,10 @@ protected:
 	bool SumW2_;
 
 	int Nib_; // number of iterative Bias corrections
-	void runIterativeBias(); // compute the iterative bias corrections
+	int Ntoysib_;
+	TH1D* iterativeBias(bool toy=false); // compute the iterative bias corrections
+	vector<TH1D*> ibtoys_;
+	void clearIbtoys();
 	
 	void Smear(TH1*); // smear using poisson or SumW2
 	void Smear(TH2*); // smear using poisson or SumW2

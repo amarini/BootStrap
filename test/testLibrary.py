@@ -62,7 +62,7 @@ b.SetData( data2.Clone('bootstrap_data') )
 
 ## As in RooUnfold for my understanding
 #b.SetToyType(ROOT.BootStrap.kToy)
-#b.SetToyType(ROOT.BootStrap.kIterBias)
+b.SetToyType(ROOT.BootStrap.kIterBias)
 
 
 #b.SetSumW2();
@@ -72,7 +72,7 @@ print "-> running BootStrap"
 ## ## kStd/kMin/kMedian/kMean
 
 b.run()
-g_bootstrap = b.result(ROOT.BootStrap.kMedian,.68)
+g_bootstrap = b.result(ROOT.BootStrap.kMin,.68)
 g_bootstrap = ROOT.utils.Shift( g_bootstrap, 0.3, True)
 
 
