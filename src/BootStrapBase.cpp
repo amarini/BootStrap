@@ -313,15 +313,14 @@ void BootStrapBase::run(){
 		if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] running Toy "<< iToy <<endl;
 		if (verbose_>0 ) {
 				cout << "\r * " << iRun++ << "/" << Ntoys_ << flush;
+				if (type_ == kIterBias) cout<<endl;
 				}
 		TH1D*toy = NULL;
 		switch (type_) 
 		{
 		case kBootstrap: toy = bootStrap();break;
 		case kToy: toy = directToy();break;
-		case kIterBias: toy = iterativeBias(1); 
-				if (verbose_ >0 ) cout <<endl;
-				break; // should not arrive here. It's there to complete the switch over enum.
+		case kIterBias: toy = iterativeBias(1); break; // should not arrive here. It's there to complete the switch over enum.
 		case kMatrix: toy = matrixSmear(); break;
 		}
 

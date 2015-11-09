@@ -74,8 +74,8 @@ print "-> running BootStrap"
 ## ## kStd/kMin/kMedian/kMean
 
 b.run()
-g_bootstrap = b.result(ROOT.BootStrap.kMin,.68)
-#g_bootstrap = b.result(ROOT.BootStrap.kMedian,.68)
+#g_bootstrap = b.result(ROOT.BootStrap.kMin,.68)
+g_bootstrap = b.result(ROOT.BootStrap.kMedian,.68)
 g_bootstrap = ROOT.utils.Shift( g_bootstrap, 0.3, True)
 
 
