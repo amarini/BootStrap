@@ -42,7 +42,8 @@ BootStrapMatrix::BootStrapMatrix( BootStrapMatrix &x) :
 
 	u_resp_bkg_ = NULL;
 	u_resp_smear_ = NULL;
-
+	
+	negCorr= x.negCorr;
 }
 
 BootStrapMatrix::~BootStrapMatrix(){
@@ -195,6 +196,17 @@ TH1D* BootStrapMatrix::Fold(TH1D* h)
 void BootStrapMatrix::info(){
 	BootStrapBase::info();
 	cout <<"------- BOOTSTRAP MATRIX ------- "<<endl;
+	cout <<" Negative Correction is: ";
+	switch(negCorr)
+	{
+		case kNegNone: cout<<"None"<<endl; break;
+		case kNegZero: cout<<"Zero"<<endl; break;
+		case kNegZeroProp: cout<<"Zero & Propagate"<<endl; break;
+		case kNegMoveProp: cout<<"Move & Propagate"<<endl; break;
+		case kNegReplProp: cout<<"Replace & Propagate"<<endl; break;
+		default: cout <<" ??? "<<endl;
+	}
+	cout <<endl;
 	cout <<"-------------------------------- "<<endl;
 }
 
@@ -513,3 +525,96 @@ TH1D* BootStrapMatrix::matrixSmear(){
 	return toy;
 }
 
+
+int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
+{
+	// This is call after set matrixes, in order to correct negative weights as in amc@nlo with different solutions.
+	//
+	if ( negCorr == kNegNone )  return 0; // avoid loops
+
+	int R=0;
+	for(int t = 0 ; t<= truth->GetNbinsY()+1 ;++t)
+	for(int r = 0 ; r<= reco->GetNbinsX()+1; ++r)
+	{
+	float c  = resp -> GetBinContent(r,t);	
+	float rc = reco -> GetBinContent(r);
+	float tc = truth -> GetBinContent(t);
+
+	int shift=0;
+  	if (r > t) shift = -1; // move r towards t
+  	if (r < t) shift =  1;
+
+	if (c < 0)
+	{
+		R=1;
+		switch (negCorr) {
+			case kNegNone: {R=0; break;} // is the only case where the negative error is not corrected.
+			case kNegZero: { resp->SetBinContent(r,t,0); break; } 
+			case kNegZeroProp:{
+					  resp->SetBinContent(r,t,0);
+					  truth->SetBinContent(t, tc - c ); // we are removing a content of c, so we need to remove c, or add |c|
+					  reco ->SetBinContent(r, rc - c );
+					  break;
+					  }
+			case kNegMoveProp:{
+					  if (shift==0){cout <<"[ERROR] could not absorb negative correction in the diagonal element, abort. Inconsistent result."<<endl; return 0;}
+					  resp->SetBinContent(r,t,0); // zero actual component
+					  reco ->SetBinContent(r, rc - c );
+					  //truth->SetBinContent(t,tc -c);
+					  float c2= resp->GetBinContent(r+shift,t);
+					  resp->SetBinContent(r + shift,t, c2 + c); // move towards the center
+					  float rc2 = reco->GetBinContent(r+shift);
+					  reco ->SetBinContent(r + shift, rc2 + c );
+					  break;
+				       	  }
+			case kNegReplProp:{
+					  resp->SetBinContent(r,t, -c); // zero actual component
+					  reco ->SetBinContent(r, rc - 2*c );
+					  //truth->SetBinContent(t,tc -c);
+					  float c2= resp->GetBinContent(r+shift,t);
+					  resp->SetBinContent(r + shift,t, c2 + 2*c); // move towards the center
+					  float rc2 = reco->GetBinContent(r+shift);
+					  reco ->SetBinContent(r + shift, rc2 + 2*c );
+					  break;
+					  }
+		}
+	} // if content is negative
+	} // loop over all the bins
+
+	// now check Reco and truth histograms. This is bad!
+	for(int t = 0 ; t<= truth->GetNbinsY()+1 ;++t)
+	{
+		float tc = truth -> GetBinContent(t);
+		if (tc <0 ) 
+		{
+		switch (negCorr) {
+			case kNegNone: { R=0; break; }
+			case kNegZero: { truth->SetBinContent(t,0); break; }
+			// propagation methods will not work  print out general error and exit
+			default : {
+				  cout<<"ERROR negative integral in truth bin "<<t<<". Setting to 0."<<endl;
+				  truth->SetBinContent(t,0); 
+				  }
+		} //end switch
+		} // end if neg 
+	} //end for over truth bin
+
+	for(int r = 0 ; r<= reco->GetNbinsX()+1; ++r)
+	{
+	float rc = reco -> GetBinContent(r);
+		if (rc <0){ //this is bad  -> bkg is expected to be positive
+		switch (negCorr) {
+			case kNegNone: { R=0; break; }
+			case kNegZero: { reco->SetBinContent(r,0); break; }
+			// propagation methods will not work  print out general error and exit
+			default : {
+				  cout<<"ERROR negative integral in reco bin "<<r<<". Setting to 0."<<endl;
+				  reco->SetBinContent(r,0); 
+				  }
+		} // end switch
+		} //end if neg
+	} //end for over reco bins
+
+	if(R>0) return CorrectNegative(reco,truth,resp); // make sure there is nothing left to correct.
+	return 0;
+}

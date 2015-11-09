@@ -55,7 +55,9 @@ private:
 	TVectorD getVector(TH1*h, bool useOverFlow=false);
 	void printMatrix(TMatrixD&,string name="");
 
-
+	// Correct the response matrix if negative. See corrections below;
+	// return 0; iff nothing has been corrected
+	int CorrectNegative(TH1D*reco,TH1D* truth, TH2D* resp);
 public:
 	// constructor 
 	BootStrapMatrix();
@@ -74,7 +76,22 @@ public:
 	void SetUMatrix(TH1D* reco, TH1D* truth, TH2D* resp);
 	void SetFMatrix(TH1D* reco, TH1D* truth, TH2D* resp);
 
-	virtual void info();
+	enum NegativeCorrections{ 
+		kNegNone = 0,  // Do Nothing and pray for the best
+		kNegZero,  // Zero all the negative element.
+		kNegZeroProp, //Zero all the negative element and propagate the differences.
+		kNegMoveProp, // Move the 0 bins in the closest diagonal and propagate
+		kNegReplProp, // Replace the negative with a positive and counterbalance in the diagonal
+		};
+	NegativeCorrections negCorr=kNegNone;
+	void info() ; // override
+
+	inline void correct() { // override
+		BootStrapBase::correct();	
+
+		if ( u_reco_ && u_truth_ && u_resp_) CorrectNegative(u_reco_,u_truth_,u_resp_);
+		if ( f_reco_ && f_truth_ && f_resp_) CorrectNegative(f_reco_,f_truth_,f_resp_);
+	};
 
 };
 #endif

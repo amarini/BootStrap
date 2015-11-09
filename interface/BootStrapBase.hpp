@@ -99,6 +99,9 @@ public:
 	// run BootStrap
 	void run();	
 
+	// call correction before running
+	virtual inline void correct(){};
+
 	//--
 	inline void SetSeed(long seed){seed_ = seed;};
 	//--
