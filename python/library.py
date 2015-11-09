@@ -96,3 +96,40 @@ def ConstructData(reco):
 		data.SetBinContent(iBin, c ) 
 	   	data . SetBinError(iBin,  ROOT.TMath.Sqrt( c )) 
 	return data
+
+def ConstructFromTree(N=10000,Nbins=100):
+	''' Construct a matrix from a tree. This is used to test positive and negative weights. return reco/truth/resp. TODO'''
+	## TODO
+	reco=ROOT.TH1D("reco","reco",Nbins,0,200.)
+	truth=ROOT.TH1D("reco","reco",Nbins,0,200.)
+	resp = ROOT.TH2D("resp","reps",Nbins,0,200.,Nbins,0,200.)
+	#gen . SetBinContent(iBin, NSig*ROOT.TMath.Power(iBin * 20./ N,-4.9) + NSig/10000. *ROOT.TMath.Power(iBin,-3) )
+	
+	res = 2 ## 2 GEV ?
+	eff = 0.95 #
+
+	## number makes this function reasonable
+	fPt = ROOT.TF1("f1","1e+6*TMath::Power(x,-3)*TMath::Exp(-50./x)",0,200);
+	for i in range(0,N):
+		if i%100 == 0:
+			print "\r Doing entry: "+str(i)+"/" + str(N) + " : %.1f%%"%(float(i)/N),
+			sys.stdout.flush()
+		pt = fPt.GetRandom()	
+		ptReco = ROOT.gRandom.Gaus(pt,res)
+		if ptReco<0:ptReco=0
+
+		accept = ( ROOT.gRandom.Uniform(1)  < eff)
+
+		# 1/3 of the weights are negative -> Flat, we can add a pt dependence
+		w = 1 
+		if ROOT.gRandom.Uniform(1)<.25:
+			w=-1
+
+
+		truth.Fill(pt,w)
+		if accept:
+			resp.Fill(ptReco,pt,w)
+			reco.Fill(ptReco,w)
+
+	print "\n* Done"
+	return (reco,truth,resp)

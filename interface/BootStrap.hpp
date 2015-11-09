@@ -36,6 +36,7 @@ public:
 	inline void SetRegParam( int reg) { regParam_ = reg;}
 
 	virtual void info();
+
 };
 
 #endif

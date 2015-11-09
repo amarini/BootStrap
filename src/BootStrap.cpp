@@ -40,6 +40,7 @@ TH1D* BootStrap::UnfoldLikelihood(TH1D*h){
 TH1D* BootStrap::Unfold(TH1D* h)
 {
 	RooUnfoldResponse RU_Resp(u_reco_,u_truth_,u_resp_,"resp","resp"); // for unfolding
+	RU_Resp.UseOverflow(); // generally better to use overflow
 //	
 	switch (unfType_)
 	{
@@ -74,5 +75,6 @@ void BootStrap::info(){
 	cout <<"---------- BOOTSTRAP ----------- "<<endl;
 	cout <<"RegParam = "<<regParam_	<<endl;
 	cout <<"unfType = "<<unfType_<<"| kBayes="<<kBayes<<", kSvd="<<kSvd<<", kInv="<<kInv<<endl;
+	cout <<"Overflow = Yes"<<endl;
 	cout <<"------------------------------ "<<endl;
 }

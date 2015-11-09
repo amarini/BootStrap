@@ -295,8 +295,11 @@ void BootStrapBase::run(){
 		info();
 	}
 
+
 	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] clearBootstrap "<<endl;
 	clearBootstrap();
+	if (VERBOSE>0) cout<<"[BootStrapBase]::[run]::[DEBUG] correct"<<endl;
+	correct();
 	if (VERBOSE >0 ) cout<<"[BootStrapBase]::[run]::[DEBUG] destroyPointers "<<endl;
 	destroyPointer(unf_);
 	destroyPointer(fold_);
