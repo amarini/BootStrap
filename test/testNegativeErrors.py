@@ -13,7 +13,7 @@ loadBootStrap()
 
 print "-> Creating Matrixes"
 
-reco, truth, resp = ConstructFromTree()
+reco, truth, resp = ConstructFromTree(100000,100)
 data= ConstructData(reco)
 
 print "-> construct BootStrap"
@@ -27,6 +27,7 @@ b.SetSeed(328956)
 b.SetUMatrix(reco,truth,resp)
 b.SetData( data.Clone('bootstrap_data') )
 b.SetToyType(ROOT.BootStrap.kBootstrap)
+#b.SetToyType(ROOT.BootStrap.kToy)
 # try also kBootStrap, kMatrix -> smear the matrix
 #b.SetSumW2(); ## MATRIX
 
@@ -34,9 +35,9 @@ b.SetToyType(ROOT.BootStrap.kBootstrap)
 b.negCorr = ROOT.BootStrap.kNegNone
 #kNegNone, kNegZero, kNegZeroProp, kNegMoveProp, kNegReplProp
 
-#error = ROOT.BootStrap.kMin
+error = ROOT.BootStrap.kMin
 #error = ROOT.BootStrap.kMedian
-error = ROOT.BootStrap.kRms
+#error = ROOT.BootStrap.kRms
 print "-> running BootStrap I"
 b.run()
 gNone = b.result(error,.68)
@@ -46,7 +47,7 @@ bZ = ROOT.BootStrap(b);
 bZ.negCorr = ROOT.BootStrap.kNegZero
 bZ.run()
 
-gZero = bZero.result(error,.68) 
+gZero = bZ.result(error,.68) 
 gZero = ROOT.utils.Shift( gZero, -0.3, True)
 
 print "-> running BootStrap III"
@@ -60,6 +61,10 @@ gRepl = ROOT.utils.Shift(gRepl,+.3,True)
 
 
 print "-> plotting"
+
+ROOT.gStyle.SetOptStat(0)
+ROOT.gStyle.SetOptTitle(0)
+
 c= ROOT.TCanvas("c1","c1",600,800)
 p1 = ROOT.TPad("pad1","pad1", 0,.2,1,1)
 p2 = ROOT.TPad("pad2","pad2", 0,0,1,0.2)
@@ -91,9 +96,9 @@ gZero.SetMarkerStyle(24)
 gZero.SetMarkerSize(0.8)
 gZero.SetMarkerColor(ROOT.kBlue+2)
 
-gResp.SetLineColor(ROOT.kMagenta+2)
-gResp.SetMarkerStyle(29)
-gResp.SetMarkerColor(ROOT.kMagenta+2)
+gRepl.SetLineColor(ROOT.kMagenta+2)
+gRepl.SetMarkerStyle(29)
+gRepl.SetMarkerColor(ROOT.kMagenta+2)
 
 truth.GetYaxis().SetLabelFont(43)
 truth.GetYaxis().SetLabelSize(26)
@@ -137,4 +142,30 @@ gRepl_r.Draw("PE SAME")
 truth_r.Draw("AXIS SAME")
 truth_r.Draw("AXIS X+ Y+ SAME")
 
+
+ROOT.utils.ChangePalette(0)
+c2 =ROOT.TCanvas("c2","c2",800,800)
+c2.Divide(2,2)
+c2.cd(1)
+title = ROOT.TLatex()
+title.SetTextFont(62)
+title.SetTextSize(0.04)
+title.SetTextAlign(22)
+
+b.GetUMatrixResp().Draw("COLZ")
+title.DrawLatex(.5,.94,"None")
+
+c2.cd(2)
+
+bZ.GetUMatrixResp().Draw("COLZ")
+title.DrawLatex(.5,.94,"Zero")
+
+c2.cd(3)
+
+bRepl.GetUMatrixResp().Draw("COLZ")
+title.DrawLatex(.5,.94,"Repl")
+
 raw_input("ok?")
+
+c.SaveAs("plotNeg/canv1.pdf")
+c2.SaveAs("plotNeg/canv2.pdf")

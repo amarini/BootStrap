@@ -533,7 +533,7 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 	if ( negCorr == kNegNone )  return 0; // avoid loops
 
 	int R=0;
-	for(int t = 0 ; t<= truth->GetNbinsY()+1 ;++t)
+	for(int t = 0 ; t<= truth->GetNbinsX()+1 ;++t)
 	for(int r = 0 ; r<= reco->GetNbinsX()+1; ++r)
 	{
 	float c  = resp -> GetBinContent(r,t);	
@@ -541,12 +541,17 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 	float tc = truth -> GetBinContent(t);
 
 	int shift=0;
-  	if (r > t) shift = -1; // move r towards t
-  	if (r < t) shift =  1;
+  	//if (r > t) shift = -1; // move r towards t
+  	//if (r < t) shift =  1;
+  	shift =  (t-r);
+
+	//cout<<"[DEBUG2] running on bin: ("<<t<<","<<r<<"):"<< c << " | T="<<tc<<" R="<<rc<<endl;
 
 	if (c < 0)
 	{
-		R=1;
+		if(R>=0 and r!=t) R=1;
+		//cout <<"[DEBUG] bin ("<<t<<","<<r<<") is negative"<<endl;
+
 		switch (negCorr) {
 			case kNegNone: {R=0; break;} // is the only case where the negative error is not corrected.
 			case kNegZero: { resp->SetBinContent(r,t,0); break; } 
@@ -557,7 +562,7 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 					  break;
 					  }
 			case kNegMoveProp:{
-					  if (shift==0){cout <<"[ERROR] could not absorb negative correction in the diagonal element, abort. Inconsistent result."<<endl; return 0;}
+					  if (shift==0){cout <<"[ERROR] could not absorb negative correction in the diagonal element, abort. Inconsistent result."<<endl; R=-1;}
 					  resp->SetBinContent(r,t,0); // zero actual component
 					  reco ->SetBinContent(r, rc - c );
 					  //truth->SetBinContent(t,tc -c);
@@ -568,18 +573,35 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 					  break;
 				       	  }
 			case kNegReplProp:{
-					  resp->SetBinContent(r,t, -c); // zero actual component
-					  reco ->SetBinContent(r, rc - 2*c );
-					  //truth->SetBinContent(t,tc -c);
+					  if (shift==0){cout <<"[ERROR] could not absorb negative correction in the diagonal element, abort. Inconsistent result."<<endl; }
+
+					  if (shift==0) { // Zero strategy
+						  resp->SetBinContent(r,t,0);
+						  break;
+					  }
+
 					  float c2= resp->GetBinContent(r+shift,t);
-					  resp->SetBinContent(r + shift,t, c2 + 2*c); // move towards the center
 					  float rc2 = reco->GetBinContent(r+shift);
-					  reco ->SetBinContent(r + shift, rc2 + 2*c );
+					  
+					  resp -> SetBinContent(r, t, c -(2*c) ); // make it positive
+					  reco -> SetBinContent(r, rc - (2*c) );
+
+					  resp -> SetBinContent(r + shift, t, c2 + (2*c) ); // move towards the center
+					  reco -> SetBinContent(r + shift, rc2 + (2*c) );
+					  
+
 					  break;
 					  }
-		}
+		} // end switch
 	} // if content is negative
 	} // loop over all the bins
+
+	// --- before going on, fix the matrix ----
+	if(R>0 and negCorr != kNegZero){ // kNegZero do not require this step, speed up
+		cout <<" * [CorrectNegative] reiteration required: R ="<<R<<endl;
+		return CorrectNegative(reco,truth,resp); // make sure there is nothing left to correct.
+	}
+	// --- ----
 
 	// now check Reco and truth histograms. This is bad!
 	for(int t = 0 ; t<= truth->GetNbinsY()+1 ;++t)
@@ -587,6 +609,7 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 		float tc = truth -> GetBinContent(t);
 		if (tc <0 ) 
 		{
+		if(R>=0) R+=2;
 		switch (negCorr) {
 			case kNegNone: { R=0; break; }
 			case kNegZero: { truth->SetBinContent(t,0); break; }
@@ -603,6 +626,7 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 	{
 	float rc = reco -> GetBinContent(r);
 		if (rc <0){ //this is bad  -> bkg is expected to be positive
+		if(R>=0)R+=4;
 		switch (negCorr) {
 			case kNegNone: { R=0; break; }
 			case kNegZero: { reco->SetBinContent(r,0); break; }
@@ -615,6 +639,10 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 		} //end if neg
 	} //end for over reco bins
 
-	if(R>0) return CorrectNegative(reco,truth,resp); // make sure there is nothing left to correct.
+	if(R>0){
+		cout <<" * [CorrectNegative] reiteration required: R ="<<R<<endl;
+		return CorrectNegative(reco,truth,resp); // make sure there is nothing left to correct.
+	}
+	if(R<0) return -1; // fatal error, try to complete
 	return 0;
 }

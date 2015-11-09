@@ -112,10 +112,15 @@ def ConstructFromTree(N=10000,Nbins=100):
 	fPt = ROOT.TF1("f1","1e+6*TMath::Power(x,-3)*TMath::Exp(-50./x)",0,200);
 	for i in range(0,N):
 		if i%100 == 0:
-			print "\r Doing entry: "+str(i)+"/" + str(N) + " : %.1f%%"%(float(i)/N),
+			print "\r Doing entry: "+str(i)+"/" + str(N) + " : %.1f%%"%(float(i)/N * 100.),
 			sys.stdout.flush()
 		pt = fPt.GetRandom()	
-		ptReco = ROOT.gRandom.Gaus(pt,res)
+
+		if ROOT.gRandom.Uniform(1) < .97:
+			ptReco = ROOT.gRandom.Gaus(pt,res)
+		else:
+			ptReco = ROOT.gRandom.Gaus(pt,res*10) ## non gaus tail
+
 		if ptReco<0:ptReco=0
 
 		accept = ( ROOT.gRandom.Uniform(1)  < eff)

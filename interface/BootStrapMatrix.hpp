@@ -51,8 +51,8 @@ private:
 	// avoid to reconstruct matrixes each time
 	bool matrixConstructed_;
 	void ConstructMatrixes(TH1D*data);
-	TMatrixD getMatrix(TH2*h, bool useOverFlow=false);
-	TVectorD getVector(TH1*h, bool useOverFlow=false);
+	TMatrixD getMatrix(TH2*h, bool useOverFlow=true);
+	TVectorD getVector(TH1*h, bool useOverFlow=true);
 	void printMatrix(TMatrixD&,string name="");
 
 	// Correct the response matrix if negative. See corrections below;
@@ -75,6 +75,11 @@ public:
 	// SetMatrixes: Unfolding and or Folding. If Folding is NULL or unset, will use the same matrix.
 	void SetUMatrix(TH1D* reco, TH1D* truth, TH2D* resp);
 	void SetFMatrix(TH1D* reco, TH1D* truth, TH2D* resp);
+
+	// Get Matrixes, plot /debug after neg corrections
+	TH2D* GetUMatrixResp(){return u_resp_;}
+	TH1D* GetUMatrixReco(){return u_reco_;}
+	TH1D* GetUMatrixTruth(){return u_truth_;}
 
 	enum NegativeCorrections{ 
 		kNegNone = 0,  // Do Nothing and pray for the best
