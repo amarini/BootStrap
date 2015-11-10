@@ -150,6 +150,32 @@ fPt.SetParameter(0, 5000.*.4 * 2.0 / I ) ; ## the total area is 5000 ## last num
 fPt2=fPt.Clone("myclone")
 fPt2.Draw(" L  SAME");
 
+title = ROOT.TLatex()
+title.SetTextFont(42)
+title.SetTextSize(0.04)
+title.SetTextAlign(22)
+title.SetNDC()
+
+if True:
+	text = "#splitline{Method=" 
+	if b.GetToyType() == ROOT.BootStrap.kBootstrap:
+		text += "Bootstrap"
+	elif b.GetToyType() ==  ROOT.BootStrap.kToy:
+		text += "Toy"
+	
+	text += "}{Error="
+
+	if error == ROOT.BootStrap.kMin:
+		text += "Min"
+	elif error == ROOT.BootStrap.kMedian:
+		text += "Median"
+	elif error == ROOT.BootStrap.kRms:
+		text += "Rms"
+	
+	text += "}"
+
+	title.DrawLatex(0.8,.3,text)
+
 p2.cd()
 p2.SetGridy()
 fPt.SetParameter(0, 5000.*.4  / I ) ; ## the total area is 5000 ## last number is the bin width, not here
@@ -179,7 +205,7 @@ ROOT.utils.ChangePalette(0)
 c2 =ROOT.TCanvas("c2","c2",800,800)
 c2.Divide(2,2)
 c2.cd(1)
-title = ROOT.TLatex()
+
 title.SetTextFont(62)
 title.SetTextSize(0.05)
 title.SetTextAlign(22)

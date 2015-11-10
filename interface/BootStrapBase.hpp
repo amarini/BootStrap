@@ -106,6 +106,7 @@ public:
 	inline void SetSeed(long seed){seed_ = seed;};
 	//--
 	inline void SetToyType(ToyType t){type_=t;};
+	inline ToyType GetToyType() const { return type_;}
 	//--
 	inline void SetNiterBias(int n){Nib_ = n;}
 
