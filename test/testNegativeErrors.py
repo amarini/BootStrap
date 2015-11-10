@@ -14,7 +14,8 @@ loadBootStrap()
 print "-> Creating Matrixes"
 
 reco, truth, resp = ConstructFromTree(100000,100)
-data= ConstructData(reco)
+#data= ConstructData(reco)
+data= reco.Clone("reco_clone")
 
 print "-> construct BootStrap"
 nReg=5
@@ -26,8 +27,8 @@ b.SetNToys(1000)
 b.SetSeed(328956)
 b.SetUMatrix(reco,truth,resp)
 b.SetData( data.Clone('bootstrap_data') )
-b.SetToyType(ROOT.BootStrap.kBootstrap)
-#b.SetToyType(ROOT.BootStrap.kToy)
+#b.SetToyType(ROOT.BootStrap.kBootstrap)
+b.SetToyType(ROOT.BootStrap.kToy)
 # try also kBootStrap, kMatrix -> smear the matrix
 #b.SetSumW2(); ## MATRIX
 
@@ -35,9 +36,9 @@ b.SetToyType(ROOT.BootStrap.kBootstrap)
 b.negCorr = ROOT.BootStrap.kNegNone
 #kNegNone, kNegZero, kNegZeroProp, kNegMoveProp, kNegReplProp
 
-error = ROOT.BootStrap.kMin
+#error = ROOT.BootStrap.kMin
 #error = ROOT.BootStrap.kMedian
-#error = ROOT.BootStrap.kRms
+error = ROOT.BootStrap.kRms
 print "-> running BootStrap I"
 b.run()
 gNone = b.result(error,.68)
@@ -50,14 +51,21 @@ bZ.run()
 gZero = bZ.result(error,.68) 
 gZero = ROOT.utils.Shift( gZero, -0.3, True)
 
-print "-> running BootStrap III"
-bRepl = ROOT.BootStrap(b)
-bRepl.negCorr= ROOT.BootStrap.kNegReplProp
-bRepl.run()
+#print "-> running BootStrap III"
+#bRepl = ROOT.BootStrap(b)
+#bRepl.negCorr= ROOT.BootStrap.kNegReplProp
+#bRepl.run()
+#
+#gRepl = bRepl.result(error,.68)
+#gRepl = ROOT.utils.Shift(gRepl,+.3,True)
 
-gRepl = bRepl.result(error,.68)
-gRepl = ROOT.utils.Shift(gRepl,+.3,True)
+print "-> running BootStrap IV"
+bScale = ROOT.BootStrap(b)
+bScale.negCorr= ROOT.BootStrap.kNegScaleProp
+bScale.run()
 
+gScale = bScale.result(error,.68)
+gScale = ROOT.utils.Shift(gScale,+.3,True)
 
 
 print "-> plotting"
@@ -96,9 +104,13 @@ gZero.SetMarkerStyle(24)
 gZero.SetMarkerSize(0.8)
 gZero.SetMarkerColor(ROOT.kBlue+2)
 
-gRepl.SetLineColor(ROOT.kMagenta+2)
-gRepl.SetMarkerStyle(29)
-gRepl.SetMarkerColor(ROOT.kMagenta+2)
+#gRepl.SetLineColor(ROOT.kMagenta+2)
+#gRepl.SetMarkerStyle(29)
+#gRepl.SetMarkerColor(ROOT.kMagenta+2)
+
+gScale.SetLineColor(ROOT.kMagenta+2)
+gScale.SetMarkerStyle(29)
+gScale.SetMarkerColor(ROOT.kMagenta+2)
 
 truth.GetYaxis().SetLabelFont(43)
 truth.GetYaxis().SetLabelSize(26)
@@ -109,7 +121,8 @@ truth.Draw("HIST")
 
 gNone.Draw("PE SAME")
 gZero.Draw("PE SAME")
-gRepl.Draw("PE SAME")
+#gRepl.Draw("PE SAME")
+gScale.Draw("PE SAME")
 
 truth.Draw("AXIS SAME")
 truth.Draw("AXIS X+ Y+SAME")
@@ -120,7 +133,8 @@ l.SetBorderSize(0)
 l.AddEntry(truth,"truth","L")
 l.AddEntry(gNone,"kNegNone ","PE")
 l.AddEntry(gZero,"kNegZero ","PE")
-l.AddEntry(gRepl,"kNegRepl ","PE")
+#l.AddEntry(gRepl,"kNegRepl ","PE")
+l.AddEntry(gScale,"kNegScale ","PE")
 
 l.Draw()
 
@@ -136,8 +150,11 @@ gNone_r.Draw("PE SAME")
 gZero_r = ROOT.utils.Ratio(gZero,truth)
 gZero_r.Draw("PE SAME")
 
-gRepl_r = ROOT.utils.Ratio(gRepl,truth)
-gRepl_r.Draw("PE SAME")
+#gRepl_r = ROOT.utils.Ratio(gRepl,truth)
+#gRepl_r.Draw("PE SAME")
+
+gScale_r = ROOT.utils.Ratio(gScale,truth)
+gScale_r.Draw("PE SAME")
 
 truth_r.Draw("AXIS SAME")
 truth_r.Draw("AXIS X+ Y+ SAME")
@@ -149,8 +166,9 @@ c2.Divide(2,2)
 c2.cd(1)
 title = ROOT.TLatex()
 title.SetTextFont(62)
-title.SetTextSize(0.04)
+title.SetTextSize(0.05)
 title.SetTextAlign(22)
+title.SetNDC()
 
 b.GetUMatrixResp().Draw("COLZ")
 title.DrawLatex(.5,.94,"None")
@@ -162,8 +180,15 @@ title.DrawLatex(.5,.94,"Zero")
 
 c2.cd(3)
 
-bRepl.GetUMatrixResp().Draw("COLZ")
-title.DrawLatex(.5,.94,"Repl")
+#bRepl.GetUMatrixResp().Draw("COLZ")
+#title.DrawLatex(.5,.94,"Repl")
+bScale.GetUMatrixResp().Draw("COLZ")
+title.DrawLatex(.5,.94,"Scale")
+
+c2.cd(4)
+
+data.Draw("PE")
+reco.Draw("HIST SAME")
 
 raw_input("ok?")
 

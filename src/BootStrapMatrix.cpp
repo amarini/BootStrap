@@ -204,6 +204,7 @@ void BootStrapMatrix::info(){
 		case kNegZeroProp: cout<<"Zero & Propagate"<<endl; break;
 		case kNegMoveProp: cout<<"Move & Propagate"<<endl; break;
 		case kNegReplProp: cout<<"Replace & Propagate"<<endl; break;
+		case kNegScaleProp: cout<<"Scale & Propagate"<<endl; break;
 		default: cout <<" ??? "<<endl;
 	}
 	cout <<endl;
@@ -536,6 +537,9 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 	for(int t = 0 ; t<= truth->GetNbinsX()+1 ;++t)
 	for(int r = 0 ; r<= reco->GetNbinsX()+1; ++r)
 	{
+
+	cout <<"\r DEBUG Doing bin ("<<t<<","<<r<<")"<<flush;
+	
 	float c  = resp -> GetBinContent(r,t);	
 	float rc = reco -> GetBinContent(r);
 	float tc = truth -> GetBinContent(t);
@@ -543,7 +547,6 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 	int shift=0;
   	//if (r > t) shift = -1; // move r towards t
   	//if (r < t) shift =  1;
-  	shift =  (t-r);
 
 	//cout<<"[DEBUG2] running on bin: ("<<t<<","<<r<<"):"<< c << " | T="<<tc<<" R="<<rc<<endl;
 
@@ -562,6 +565,7 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 					  break;
 					  }
 			case kNegMoveProp:{
+  					  shift =  (t-r);
 					  if (shift==0){cout <<"[ERROR] could not absorb negative correction in the diagonal element, abort. Inconsistent result."<<endl; R=-1;}
 					  resp->SetBinContent(r,t,0); // zero actual component
 					  reco ->SetBinContent(r, rc - c );
@@ -573,6 +577,7 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 					  break;
 				       	  }
 			case kNegReplProp:{
+  					  shift =  (t-r);
 					  if (shift==0){cout <<"[ERROR] could not absorb negative correction in the diagonal element, abort. Inconsistent result."<<endl; }
 
 					  if (shift==0) { // Zero strategy
@@ -592,6 +597,25 @@ int BootStrapMatrix::CorrectNegative(TH1D* reco, TH1D*truth,TH2D*resp)
 
 					  break;
 					  }
+			case kNegScaleProp: {
+					  // compute the weighted gen sum, and unweighted
+					  float sum=0.0;
+					  float asum = 0.0;
+					  for(int rr =0; rr< reco->GetNbinsX()+1 ;++rr) {
+						  sum  += resp->GetBinContent(rr,t);
+						  asum += fabs(resp->GetBinContent(rr,t));
+					  }
+					  float f=sum/asum;
+					  if (f<0) {cout<<"[ERROR] gen integral is negative, setting it to 0"<<endl; f=0;}
+					  for(int rr =0; rr< reco->GetNbinsX()+1 ;++rr) {
+						  c = resp ->GetBinContent(rr,t);
+						  float newc = fabs(c) *f  ;
+						  resp->SetBinContent(rr,t,newc);
+						  float c2 = reco->GetBinContent(rr);
+						  reco->SetBinContent(rr, c2 - c + newc);
+					  }
+					  break;
+					 };
 		} // end switch
 	} // if content is negative
 	} // loop over all the bins

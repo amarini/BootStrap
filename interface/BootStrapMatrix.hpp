@@ -87,6 +87,7 @@ public:
 		kNegZeroProp, //Zero all the negative element and propagate the differences.
 		kNegMoveProp, // Move the 0 bins in the closest diagonal and propagate
 		kNegReplProp, // Replace the negative with a positive and counterbalance in the diagonal
+		kNegScaleProp,// swap the negative and scale
 		};
 	NegativeCorrections negCorr=kNegNone;
 	void info() ; // override

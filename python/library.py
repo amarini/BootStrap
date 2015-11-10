@@ -126,9 +126,9 @@ def ConstructFromTree(N=10000,Nbins=100):
 		accept = ( ROOT.gRandom.Uniform(1)  < eff)
 
 		# 1/3 of the weights are negative -> Flat, we can add a pt dependence
-		w = 1 
+		w = .05 
 		if ROOT.gRandom.Uniform(1)<.25:
-			w=-1
+			w *= -1
 
 
 		truth.Fill(pt,w)
