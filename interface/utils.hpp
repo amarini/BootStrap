@@ -2,7 +2,7 @@
 #define UTILS_H
 
 #include "TGraphAsymmErrors.h"
-
+#include "TF1.h"
 
 
 class utils
@@ -25,6 +25,8 @@ public:
 
 	static TGraphAsymmErrors* Ratio(TGraphAsymmErrors* g, TH1*base);
 	static TH1* Ratio(TH1* h, TH1*base);
+	static TGraphAsymmErrors* Ratio(TGraphAsymmErrors* g, TF1*base);
+	static TH1* Ratio(TH1* h, TF1*base);
 };
 
 #endif

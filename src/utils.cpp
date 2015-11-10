@@ -128,3 +128,40 @@ TH1* utils::Ratio(TH1* h, TH1*base){
 	
 	return ratio;
 }
+
+TGraphAsymmErrors * utils::Ratio(TGraphAsymmErrors *g, TF1*base)
+{
+	cout<<"Ratio TGraph/TF1 warning... assume constant binning"<<endl;
+	TGraphAsymmErrors *ratio = (TGraphAsymmErrors*)g->Clone(Form("%s_ratio",g->GetName()) ) ;
+
+	double width= g->GetX()[1] - g->GetX()[0];
+	for(int i=0;i< g->GetN();++i)
+	{
+		double x= g->GetX()[i];	
+		double y= g->GetY()[i];	
+		double eyl= g->GetEYlow()[i];	
+		double eyh= g->GetEYhigh()[i];	
+		double b = base->Integral(x-width/2.,x+width/2.); // only content. shift by one.
+
+		ratio->SetPoint(i, x , y/b);
+		ratio->SetPointError(i, 0,0 , eyl/b,eyh/b);
+	}
+	return ratio;
+}
+
+TH1* utils::Ratio(TH1* h, TF1*base){
+	TH1* ratio= (TH1*) h->Clone(Form("%s_ratio",h->GetName()));
+
+	for(int i=0;i<h->GetNbinsX()+1 ;++i)
+	{
+		double xl = h->GetBinLowEdge(i);
+		double xh = h->GetBinLowEdge(i+1);
+		double b = base->Integral(xl,xh);
+		double c = h->GetBinContent(i);
+		double e = h->GetBinError(i);
+		ratio->SetBinContent(i, c/b);
+		ratio->SetBinError(i, e/b);
+	}
+	
+	return ratio;
+}

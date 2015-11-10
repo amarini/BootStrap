@@ -107,7 +107,8 @@ def ConstructFromTree(N=10000,Nbins=100):
 	
 	res = 2 ## 2 GEV ?
 	eff = 0.95 #
-
+	totAccepted=0.
+	tot=0.
 	## number makes this function reasonable
 	fPt = ROOT.TF1("f1","1e+6*TMath::Power(x,-3)*TMath::Exp(-50./x)",0,200);
 	for i in range(0,N):
@@ -126,15 +127,17 @@ def ConstructFromTree(N=10000,Nbins=100):
 		accept = ( ROOT.gRandom.Uniform(1)  < eff)
 
 		# 1/3 of the weights are negative -> Flat, we can add a pt dependence
-		w = .05 
-		if ROOT.gRandom.Uniform(1)<.25:
+		w = 5000./float(N)  ## expected events : 5000. * (1-.3*2)
+		if ROOT.gRandom.Uniform(1)<.30:
 			w *= -1
 
-
+		tot += w
 		truth.Fill(pt,w)
 		if accept:
+			totAccepted += w
 			resp.Fill(ptReco,pt,w)
 			reco.Fill(ptReco,w)
 
 	print "\n* Done"
+	print "Tot=",tot, "eff=",totAccepted/tot
 	return (reco,truth,resp)

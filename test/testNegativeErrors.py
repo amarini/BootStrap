@@ -27,8 +27,8 @@ b.SetNToys(1000)
 b.SetSeed(328956)
 b.SetUMatrix(reco,truth,resp)
 b.SetData( data.Clone('bootstrap_data') )
-#b.SetToyType(ROOT.BootStrap.kBootstrap)
-b.SetToyType(ROOT.BootStrap.kToy)
+b.SetToyType(ROOT.BootStrap.kBootstrap)
+#b.SetToyType(ROOT.BootStrap.kToy)
 # try also kBootStrap, kMatrix -> smear the matrix
 #b.SetSumW2(); ## MATRIX
 
@@ -36,9 +36,9 @@ b.SetToyType(ROOT.BootStrap.kToy)
 b.negCorr = ROOT.BootStrap.kNegNone
 #kNegNone, kNegZero, kNegZeroProp, kNegMoveProp, kNegReplProp
 
-#error = ROOT.BootStrap.kMin
+error = ROOT.BootStrap.kMin
 #error = ROOT.BootStrap.kMedian
-error = ROOT.BootStrap.kRms
+#error = ROOT.BootStrap.kRms
 print "-> running BootStrap I"
 b.run()
 gNone = b.result(error,.68)
@@ -138,22 +138,37 @@ l.AddEntry(gScale,"kNegScale ","PE")
 
 l.Draw()
 
+## truth function
+fPt = ROOT.TF1("f1","[0]*1e+6*TMath::Power(x,-3)*TMath::Exp(-50./x)",0,200)
+fPt.SetParameter(0,1);
+I=fPt.Integral(0,200);
+## up canvas
+fPt.SetParameter(0, 5000.*.4 * 2.0 / I ) ; ## the total area is 5000 ## last number is the bin width
+#print "--- fPt Integral is",fPt.Integral(0,200)
+#print "--- truth integral is", truth.Integral()
+
+fPt2=fPt.Clone("myclone")
+fPt2.Draw(" L  SAME");
+
 p2.cd()
+p2.SetGridy()
+fPt.SetParameter(0, 5000.*.4  / I ) ; ## the total area is 5000 ## last number is the bin width, not here
 
-truth_r = ROOT.utils.Ratio(truth,truth)
+truth_r = ROOT.utils.Ratio(truth,fPt)
 truth_r.Draw("HIST")
-truth_r.GetYaxis().SetRangeUser(0.5,1.5)
+truth_r.GetYaxis().SetRangeUser(0.45,1.55)
+truth_r.GetYaxis().SetNdivisions(504);
 
-gNone_r = ROOT.utils.Ratio(gNone,truth)
+gNone_r = ROOT.utils.Ratio(gNone,fPt)
 gNone_r.Draw("PE SAME")
 
-gZero_r = ROOT.utils.Ratio(gZero,truth)
+gZero_r = ROOT.utils.Ratio(gZero,fPt)
 gZero_r.Draw("PE SAME")
 
-#gRepl_r = ROOT.utils.Ratio(gRepl,truth)
+#gRepl_r = ROOT.utils.Ratio(gRepl,fPt)
 #gRepl_r.Draw("PE SAME")
 
-gScale_r = ROOT.utils.Ratio(gScale,truth)
+gScale_r = ROOT.utils.Ratio(gScale,fPt)
 gScale_r.Draw("PE SAME")
 
 truth_r.Draw("AXIS SAME")
