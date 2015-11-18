@@ -128,7 +128,7 @@ def ConstructFromTree(N=10000,Nbins=100):
 
 		# 1/3 of the weights are negative -> Flat, we can add a pt dependence
 		w = 5000./float(N)  ## expected events : 5000. * (1-.3*2)
-		if ROOT.gRandom.Uniform(1)<.30:
+		if ROOT.gRandom.Uniform(1)<.40:
 			w *= -1
 
 		tot += w
