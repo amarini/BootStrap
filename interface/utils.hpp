@@ -3,13 +3,14 @@
 
 #include "TGraphAsymmErrors.h"
 #include "TF1.h"
+#include "TH1D.h"
 
 
 class utils
 {
 public:
 	static void ChangePalette(int type=0);
-	//static TGraphAsymmErrors* Shift(TH1D* h,float dx,bool fraction=false);
+	static TGraphAsymmErrors* Shift(TH1D* h,float dx,bool fraction=false);
 	static TGraphAsymmErrors* Shift(TGraphAsymmErrors* g,float dx,bool fraction=false);
 
 	class RGB
@@ -27,6 +28,8 @@ public:
 	static TH1* Ratio(TH1* h, TH1*base);
 	static TGraphAsymmErrors* Ratio(TGraphAsymmErrors* g, TF1*base);
 	static TH1* Ratio(TH1* h, TF1*base);
+
+	static void CloneStyle(TObject *base, TObject* target );
 };
 
 #endif

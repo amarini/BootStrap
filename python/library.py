@@ -97,7 +97,7 @@ def ConstructData(reco):
 	   	data . SetBinError(iBin,  ROOT.TMath.Sqrt( c )) 
 	return data
 
-def ConstructFromTree(N=10000,Nbins=100):
+def ConstructFromTree(N=10000,Nbins=100,Norm=5000.):
 	''' Construct a matrix from a tree. This is used to test positive and negative weights. return reco/truth/resp. TODO'''
 	## TODO
 	reco=ROOT.TH1D("reco","reco",Nbins,0,200.)
@@ -120,14 +120,15 @@ def ConstructFromTree(N=10000,Nbins=100):
 		if ROOT.gRandom.Uniform(1) < .97:
 			ptReco = ROOT.gRandom.Gaus(pt,res)
 		else:
-			ptReco = ROOT.gRandom.Gaus(pt,res*10) ## non gaus tail
+			#ptReco = ROOT.gRandom.Gaus(pt,res*10) ## non gaus tail
+			ptReco = pt -abs(ROOT.gRandom.Gaus(0.0,res*10)) ## non gaus asymm tail
 
 		if ptReco<0:ptReco=0
 
 		accept = ( ROOT.gRandom.Uniform(1)  < eff)
 
 		# 1/3 of the weights are negative -> Flat, we can add a pt dependence
-		w = 5000./float(N)  ## expected events : 5000. * (1-.3*2)
+		w = Norm/float(N)  ## expected events : 5000. * (1-.3*2)
 		if ROOT.gRandom.Uniform(1)<.40:
 			w *= -1
 

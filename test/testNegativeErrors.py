@@ -13,7 +13,9 @@ loadBootStrap()
 
 print "-> Creating Matrixes"
 
-reco, truth, resp = ConstructFromTree(100000,100)
+Norm=50000.
+Nevents=1000000
+reco, truth, resp = ConstructFromTree(Nevents,100,Norm)
 #data= ConstructData(reco)
 data= reco.Clone("reco_clone")
 
@@ -144,7 +146,8 @@ fPt.SetParameter(0,1);
 I=fPt.Integral(0,200);
 ## up canvas
 #fPt.SetParameter(0, 5000.*(1.-.3*2) * 2.0 / I ) ; ## the total area is 5000 ## last number is the bin width
-fPt.SetParameter(0, 5000.*(1.-.4*2) * 2.0 / I ) ; ## the total area is 5000 ## last number is the bin width
+#fPt.SetParameter(0, 5000.*(1.-.4*2) * 2.0 / I ) ; ## the total area is 5000 ## last number is the bin width
+fPt.SetParameter(0, Norm*(1.-.4*2) * 2.0 / I ) ; ## the total area is 5000 ## last number is the bin width
 #print "--- fPt Integral is",fPt.Integral(0,200)
 #print "--- truth integral is", truth.Integral()
 
@@ -180,7 +183,7 @@ if True:
 p2.cd()
 p2.SetGridy()
 #fPt.SetParameter(0, 5000.*(1.-.3*2)  / I ) ; ## the total area is 5000 ## last number is the bin width, not here
-fPt.SetParameter(0, 5000.*(1.-.4*2)  / I ) ; ## the total area is 5000 ## last number is the bin width, not here
+fPt.SetParameter(0, Norm*(1.-.4*2)  / I ) ; ## the total area is 5000 ## last number is the bin width, not here
 
 truth_r = ROOT.utils.Ratio(truth,fPt)
 truth_r.Draw("HIST")

@@ -70,7 +70,29 @@ void utils::ChangePalette(int type)
 }
 
 
-// TGraphAsymmErrors* utils::Shift(TH1D* h,float dx,bool fraction=false);
+TGraphAsymmErrors* utils::Shift(TH1D* h,float dx,bool fraction){
+	double N= h->GetNbinsX();
+	TGraphAsymmErrors *g = new TGraphAsymmErrors();
+	g->SetName(Form("%s_shift",h->GetName()));
+	g->SetTitle(h->GetTitle());
+	for(int i=1;i <= N ;++i)	
+	{
+		double x=h->GetBinCenter(i);
+		double w=h->GetBinWidth(i);
+		double y=h->GetBinContent(i);
+		double e=h->GetBinError(i);
+		
+		double x1=x+dx;
+		if (fraction) x1 = x + dx*w ;
+		int n=g->GetN();
+		g->SetPoint(n, x1,y);
+		g->SetPointError(n,0,0,e,e);
+	}
+	CloneStyle(h,g);
+	return g;
+}
+
+
 TGraphAsymmErrors* utils::Shift(TGraphAsymmErrors* g,float dx,bool fraction)
 {
 	if (fraction == true ){
@@ -92,6 +114,7 @@ TGraphAsymmErrors* utils::Shift(TGraphAsymmErrors* g,float dx,bool fraction)
 		g_new->SetPoint(i, x + dx, y);
 		g_new ->SetPointError(i, 0, 0, eyl,eyh ) ;
 	}
+	CloneStyle(g,g_new);
 	return g_new;
 }
 
@@ -164,4 +187,34 @@ TH1* utils::Ratio(TH1* h, TF1*base){
 	}
 	
 	return ratio;
+}
+
+
+void utils::CloneStyle(TObject *base, TObject *target)
+{
+	if(   base->InheritsFrom("TAttLine") and 
+	      target->InheritsFrom("TAttLine")) {
+		dynamic_cast<TAttLine*>(target)->SetLineColor( dynamic_cast<TAttLine*>(base)->GetLineColor() );
+		dynamic_cast<TAttLine*>(target)->SetLineStyle( dynamic_cast<TAttLine*>(base)->GetLineStyle() );
+		dynamic_cast<TAttLine*>(target)->SetLineWidth( dynamic_cast<TAttLine*>(base)->GetLineWidth() );
+	}	
+	if(   base->InheritsFrom("TAttMarker") and 
+	      target->InheritsFrom("TAttMarker")) {
+		dynamic_cast<TAttMarker*>(target)->SetMarkerColor( dynamic_cast<TAttMarker*>(base)->GetMarkerColor() );
+		dynamic_cast<TAttMarker*>(target)->SetMarkerStyle( dynamic_cast<TAttMarker*>(base)->GetMarkerStyle() );
+		dynamic_cast<TAttMarker*>(target)->SetMarkerSize( dynamic_cast<TAttMarker*>(base)->GetMarkerSize() );
+	}	
+	if(   base->InheritsFrom("TAttFill") and 
+	      target->InheritsFrom("TAttFill")) {
+		dynamic_cast<TAttFill*>(target)->SetFillColor( dynamic_cast<TAttFill*>(base)->GetFillColor() );
+		dynamic_cast<TAttFill*>(target)->SetFillStyle( dynamic_cast<TAttFill*>(base)->GetFillStyle() );
+	}	
+	if(   base->InheritsFrom("TAttText") and 
+	      target->InheritsFrom("TAttText")) {
+		dynamic_cast<TAttText*>(target)->SetTextColor( dynamic_cast<TAttText*>(base)->GetTextColor() );
+		dynamic_cast<TAttText*>(target)->SetTextAngle( dynamic_cast<TAttText*>(base)->GetTextAngle() );
+		dynamic_cast<TAttText*>(target)->SetTextAlign( dynamic_cast<TAttText*>(base)->GetTextAlign() );
+		dynamic_cast<TAttText*>(target)->SetTextFont( dynamic_cast<TAttText*>(base)->GetTextFont() );
+		dynamic_cast<TAttText*>(target)->SetTextSize( dynamic_cast<TAttText*>(base)->GetTextSize() );
+	}	
 }
