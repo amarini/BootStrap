@@ -83,6 +83,14 @@ for iTruth in range(1,njets.GetNbinsX()+1):
 truth = respfold.ProjectionX()
 measured = respfold.ProjectionY()
 
+print "----- MATRIX FOLDED ----- "
+for iTruth in range(1,njets.GetNbinsX()+1):
+   print "Truth=%3d\t"%iTruth,
+   for jMeas in range(1,njets.GetNbinsX()+1):
+	   print "%5.2f " % (respfold.GetBinContent(iTruth,jMeas) ),
+   print 
+print "------------------------ "
+
 print "---- CHECK ---"
 for iTruth in range(1,njets.GetNbinsX()+1):
 	print "iTruth=",iTruth, " T= ",truth.GetBinContent(iTruth)," == MC=", njets.GetBinContent(iTruth)
