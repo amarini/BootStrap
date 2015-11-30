@@ -60,6 +60,8 @@ public:
 	static TH1F* GetDensity(std::vector<float> &v, float R) ;
 
 	static float Chi2(TGraphAsymmErrors *g, TH1 *h, TH2* corr=NULL);
+
+	static TH1* Normalize(TH1* h, TH2*cov=NULL, TH2* covResult=NULL);
 };
 
 #endif

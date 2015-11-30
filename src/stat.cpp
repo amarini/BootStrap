@@ -371,3 +371,88 @@ float STAT::Chi2(TGraphAsymmErrors *g, TH1 *h, TH2* corr)
 	//float STAT::Chi2( vector<float> &a, vector<float> &b, vector<float> &ehigh, vector<float> &elow ,map<pair<int,int>,float> &corr)
 	return Chi2(x,y,eyhigh,eylow, c);
 }
+
+TH1* STAT::Normalize(TH1* h , TH2* cov, TH2* covResult)
+{
+	TH1* res=(TH1*)h->Clone(Form("%s_Norm",h->GetName()) ) ;
+	res->Reset("ACE");
+	res->Sumw2();
+
+	// for overflow and underflow change this with options
+	//  ---- CONFIGURATION
+	int bin0 = 1;
+	int binN = h->GetNbinsX() ;
+	bool haveCov = false; if (cov!=NULL) haveCov = true;
+	bool wantCov = false; if (covResult!=NULL) wantCov = true;
+
+	cout <<" --- CONFIGURATION ---"<<endl;
+	cout <<" bin0 = "<<bin0<<endl;
+	cout <<" binN = "<<binN<<endl;
+	cout <<" haveCov = "<<haveCov<<endl;
+	cout <<" wantCov = "<<wantCov<<endl;
+	cout <<" ---------------------"<<endl;
+	// -----
+	TMatrixD covM(binN-bin0+1,binN-bin0+1);
+	TMatrixD covRM(binN-bin0+1,binN-bin0+1);
+
+	if (not haveCov)
+	{
+		for(int i=bin0;i<=binN;++i)
+		for(int j=bin0;j<=binN;++j)
+		{
+		if( i==j ) covM(i-bin0,j-bin0) =  TMath::Power( h->GetBinError(i),2);
+		else covM(i-bin0,j-bin0) =0;
+		}
+	}
+	else 
+	{
+		for(int i=bin0;i<=binN;++i)
+		for(int j=bin0;j<=binN;++j)
+			covM(i-bin0,j-bin0) = cov->GetBinContent(i,j);
+	}
+
+	// -----
+	// if I use width, I need to propagate error in the cov, matrix
+	double integral= h->Integral(bin0,binN);
+	double sumw2=0.;
+
+	for(int i=bin0;i<=binN;++i)
+	for(int j=bin0;j<=binN;++j)
+		sumw2 +=  covM(i-bin0,j-bin0);
+	// --end sumw2
+	cout <<"Integral = "<<integral<<endl;
+	cout <<"Sumw2 ="<<sumw2<<endl;
+	// jacobian
+	TMatrixD J(binN-bin0+1,binN-bin0+1); // Jakobian
+
+	for(int i=bin0;i<=binN;++i)
+	for(int j=bin0;j<=binN;++j)
+		{
+		/* fi= x_i / sum_j x_j
+		 * dfi/ dxj  = - x_i / I^2 (i!=j)
+		 * dfi/ dxi =( I - x_i )/ I^2
+		 */
+		if (i==j) J(i-bin0,j-bin0)  =  (integral - h->GetBinContent(i) )/ (integral*integral);
+		else J(i-bin0,j-bin0) = - h->GetBinContent(i)/(integral*integral);
+		}
+
+	TMatrixD JT(J); JT.Transpose(J);	
+	covRM = J* covM * JT;
+
+	cout <<" Cooking Results"<<endl;
+
+	if (wantCov)
+	{
+	for(int i=bin0;i<=binN;++i)
+	for(int j=bin0;j<=binN;++j)
+		covResult->SetBinContent(i,j, covRM(i-bin0,j-bin0) ) ;
+	}
+	// compute values
+	for(int i=bin0;i<=binN;++i)
+	{
+		res->SetBinContent(i, h->GetBinContent(i) / integral);
+		res->SetBinError(i, TMath::Sqrt(covRM(i-bin0,i-bin0)));
+	}
+	// delete
+	return res;
+}
