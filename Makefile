@@ -4,19 +4,27 @@ CXXFLAGS=`root-config --libs --cflags` -O2 -fPIC  -I./ -std=c++11
 
 lxplus=$(findstring lxplus, $(shell hostname -f) )
 mit=$(findstring mit.edu, $(shell hostname -f) )
+dtmit=$(findstring dtmit, $(shell hostname -f) )
 
 ###################### determine if you are on lxplus or mit or else
 ifneq ($(strip $(lxplus)),)
 $(info You are on lxplus)
 #ROOUNFOLD=$(HOME)/work/RooUnfold/
 ROOUNFOLD=/afs/cern.ch/user/a/amarini/public/RooUnfold/
-else ifneq ($(strip $(mit)),)
+else 
+ifneq ($(strip $(dtmit)),)
+$(info You are on a dtmit, using lxplus)
+ROOUNFOLD=/afs/cern.ch/user/a/amarini/public/RooUnfold/
+else 
+ifneq ($(strip $(mit)),)
 		## ON MIT
 $(info You are on a mit server)
 ROOUNFOLD=/home/amarini/RooUnfold/
 else
 $(info You are Not on lxplus nor mit)
 ROOUNFOLD=$(HOME)/Downloads/RooUnfold-1.1.1/
+endif
+endif
 endif
 
 #CXXFLAGS += -L$(PWD)/../NeroProducer/Core/bin -lBare -Wl,-rpath=$(PWD)/../NeroProducer/Core/bin -ggdb
