@@ -19,7 +19,7 @@ print "-> Creating Matrixes"
 ####################
 #NBkg *= 10
 bkg  = ConstructBackground()
-gen  = ConstructTruth()
+gen  = ConstructTruth(1)
 smear= ConstructSmear(2) ## 1 ~ diagonal, 2 ~ off-diagonal, 3 low eff
 
 resp = ConstructResponse(gen,smear)
@@ -36,16 +36,17 @@ print "-> Using no bias in the matrix"
 data2=data
 
 print "-> construct Unfolding"
-nReg = 5
+nReg = 15
 print "\t\tBayes, nReg=",nReg
 
 R = ROOT.RooUnfoldResponse(reco,gen,resp)
-u = ROOT.RooUnfoldBayes(R,data2,nReg)
-#u = ROOT.RooUnfoldSvd(R,data2,nReg)
+#u = ROOT.RooUnfoldBayes(R,data2,nReg)
+u = ROOT.RooUnfoldSvd(R,data2,nReg)
 u.SetVerbose(-1)
 u.SetNToys(1000)
 #u.IncludeSystematics(2)  ### only MATRIX
-h_bayes = u.Hreco(ROOT.RooUnfold.kCovToy)
+#h_bayes = u.Hreco(ROOT.RooUnfold.kCovToy)
+h_svd = u.Hreco(ROOT.RooUnfold.kCovToy)
 
 #uInv = ROOT.RooUnfoldInvert(R,reco)
 #closure = uInv.Hreco()
@@ -53,9 +54,11 @@ h_bayes = u.Hreco(ROOT.RooUnfold.kCovToy)
 print "-> construct BootStrap"
 #b = ROOT.BootStrapMatrix()
 b = ROOT.BootStrap()
-b.SetUnfoldType(ROOT.BootStrap.kBayes) ## BootStrap
+#b.SetUnfoldType(ROOT.BootStrap.kBayes) ## BootStrap
 #b.SetUnfoldType(ROOT.BootStrap.kInv) ## BootStrap
-b.SetRegParam(nReg) ##BootStrap
+b.SetUnfoldType(ROOT.BootStrap.kTUnfoldDensity) ## Density
+#b.SetRegParam(nReg) ##BootStrap
+b.SetRegParam(-1) ##BootStrap
 
 b.SetNToys(1000)
 b.SetSeed(328956)
@@ -63,8 +66,8 @@ b.SetUMatrix(reco,gen,resp)
 b.SetData( data2.Clone('bootstrap_data') )
 
 ## As in RooUnfold for my understanding
-#b.SetToyType(ROOT.BootStrap.kToy)
-b.SetToyType(ROOT.BootStrap.kIterBias)
+b.SetToyType(ROOT.BootStrap.kToy)
+#b.SetToyType(ROOT.BootStrap.kIterBias)
 
 
 #b.SetSumW2(); ## MATRIX
@@ -111,10 +114,10 @@ p2.SetRightMargin(0.02)
 
 p1.cd()
 gen.SetLineColor(ROOT.kRed)
-h_bayes.SetLineColor(ROOT.kGreen+2)
-h_bayes.SetMarkerColor(ROOT.kGreen+2)
-h_bayes.SetMarkerStyle(29)
-h_bayes.SetFillColor(ROOT.kGreen-9)
+h_svd.SetLineColor(ROOT.kGreen+2)
+h_svd.SetMarkerColor(ROOT.kGreen+2)
+h_svd.SetMarkerStyle(29)
+h_svd.SetFillColor(ROOT.kGreen-9)
 
 g_bootstrap.SetLineColor(ROOT.kBlue+2)
 g_bootstrap.SetMarkerColor(ROOT.kBlue+2)
@@ -146,7 +149,7 @@ gen.GetXaxis().SetLabelSize(26)
 gen.Draw("AXIS")
 bkg.Draw("HIST SAME")
 
-h_bayes.Draw("PE2 SAME")
+h_svd.Draw("PE2 SAME")
 g_bootstrap.Draw("PE SAME")
 g_bs2.Draw("PE SAME")
 gen.Draw("HIST SAME")
@@ -161,8 +164,9 @@ l = ROOT.TLegend(0.6,.6,.98,.98)
 l.SetFillStyle(0)
 l.SetBorderSize(0)
 l.AddEntry(gen,"truth","L")
-l.AddEntry(h_bayes,"bayes","LF")
-l.AddEntry(g_bootstrap,"Iterative Bias","PE")
+#l.AddEntry(h_bayes,"bayes","LF")
+l.AddEntry(h_svd,"svd","LF")
+l.AddEntry(g_bootstrap,"Toys","PE")
 l.AddEntry(g_bs2,"bootstrap ","PE")
 l.AddEntry(reco,"reco","L")
 l.AddEntry(bkg,"bkg","LF")
@@ -173,11 +177,11 @@ print "-> Coverage Test"
 tot=0
 bootstrap= 0
 bayes=0
-for i in range(1,h_bayes.GetNbinsX()+1):
+for i in range(1,h_svd.GetNbinsX()+1):
 	g = gen.GetBinContent(i)
 
-	c1 = h_bayes.GetBinContent(i)
-	e1 = h_bayes.GetBinError(i)
+	c1 = h_svd.GetBinContent(i)
+	e1 = h_svd.GetBinError(i)
 
 	tot += 1
 	if abs(g- c1) < e1: bayes+=1
@@ -202,7 +206,7 @@ gen_r.Draw("AXIS")
 gen_r.GetYaxis().SetNdivisions(204)
 gen_r.GetYaxis().SetRangeUser(-.1,2.3)
 
-h_bayes_r = ROOT.utils.Ratio(h_bayes,gen)
+h_bayes_r = ROOT.utils.Ratio(h_svd,gen)
 h_bayes_r.Draw("PE2 SAME")
 g_bs_r = ROOT.utils.Ratio(g_bootstrap, gen)
 g_bs_r.Draw("PE SAME")

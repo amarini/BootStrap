@@ -1,5 +1,6 @@
 GCC=g++
-CXXFLAGS=`root-config --libs --cflags` -O2 -fPIC  -I./ -std=c++11
+#CXXFLAGS=`root-config --libs --cflags` -O2 -fPIC  -I./ -std=c++11
+CXXFLAGS=`root-config --libs --cflags` -O2 -fPIC  -I./ -std=c++1y
 ## to use RooUnfold
 
 lxplus=$(findstring lxplus, $(shell hostname -f) )
@@ -9,8 +10,8 @@ dtmit=$(findstring dtmit, $(shell hostname -f) )
 ###################### determine if you are on lxplus or mit or else
 ifneq ($(strip $(lxplus)),)
 $(info You are on lxplus)
-#ROOUNFOLD=$(HOME)/work/RooUnfold/
-ROOUNFOLD=/afs/cern.ch/user/a/amarini/public/RooUnfold/
+ROOUNFOLD=$(HOME)/work/RooUnfold/
+#ROOUNFOLD=/afs/cern.ch/user/a/amarini/public/RooUnfold/
 else 
 ifneq ($(strip $(dtmit)),)
 $(info You are on a dtmit, using lxplus)

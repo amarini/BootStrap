@@ -14,7 +14,7 @@
 class BootStrap :  public BootStrapMatrix
 {
 public:
-	enum UnfoldType	{kBayes=0,kSvd=1,kInv=2};
+	enum UnfoldType	{kBayes=0,kSvd=1,kInv=2,kTUnfoldDensity=3};
 
 private:
 
